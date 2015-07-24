@@ -1,0 +1,16 @@
+[package]
+
+name = "civng"
+version = "0.0.1"
+authors = [ "Virgil Dupras <hsoft@hardcoded.net>" ]
+
+[[bin]]
+
+name = "civng"
+
+[dependencies]
+num = "*"
+
+[dependencies.rustty]
+path = "../rustty"
+
