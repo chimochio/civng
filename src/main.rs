@@ -1,57 +1,16 @@
 use num::integer::Integer;
 use rustty::{Terminal, Event};
+use hexpos::{Pos, Direction};
 
 extern crate num;
 extern crate rustty;
+
+mod hexpos;
 
 const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
 const CELL_CENTER_COL: usize = 4;
 const CELL_CENTER_ROW: usize = 1;
-
-#[derive(Copy, Clone, PartialEq)]
-enum Direction {
-    North,
-    NorthEast,
-    SouthEast,
-    South,
-    SouthWest,
-    NorthWest,
-}
-
-#[derive(Copy, Clone)]
-struct Pos {
-    x: i32,
-    y: i32,
-    z: i32,
-}
-
-impl Pos {
-    fn new(x: i32, y: i32, z: i32) -> Pos {
-        Pos {
-            x: x,
-            y: y,
-            z: z,
-        }
-    }
-
-    fn neighbor(&self, direction: Direction) -> Pos {
-        let mut p = *self;
-        match direction {
-            Direction::North => { p.y += 1; p.z -= 1 },
-            Direction::NorthEast => { p.x += 1; p.z -= 1 },
-            Direction::SouthEast => { p.x += 1; p.y -= 1 },
-            Direction::South => { p.z += 1; p.y -= 1 },
-            Direction::SouthWest => { p.z += 1; p.x -= 1 },
-            Direction::NorthWest => { p.y += 1; p.x -= 1 },
-        }
-        p
-    }
-
-    fn fmt(&self) -> String {
-        format!("{},{},{}", self.x, self.y, self.z)
-    }
-}
 
 #[derive(Copy, Clone)]
 struct ScreenPos {
