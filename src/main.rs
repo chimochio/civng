@@ -6,6 +6,8 @@ extern crate rustty;
 
 const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
+const CELL_CENTER_COL: usize = 4;
+const CELL_CENTER_ROW: usize = 1;
 
 #[derive(Copy, Clone)]
 enum Direction {
@@ -25,6 +27,14 @@ struct Pos {
 }
 
 impl Pos {
+    fn new(x: i32, y: i32, z: i32) -> Pos {
+        Pos {
+            x: x,
+            y: y,
+            z: z,
+        }
+    }
+
     fn fmt(&self) -> String {
         format!("{},{},{}", self.x, self.y, self.z)
     }
@@ -34,6 +44,15 @@ impl Pos {
 struct ScreenPos {
     row: usize,
     col: usize,
+}
+
+impl ScreenPos {
+    fn new(row: usize, col: usize) -> ScreenPos {
+        ScreenPos {
+            row: row,
+            col: col,
+        }
+    }
 }
 
 /// Representation of a Cell on screen
@@ -112,22 +131,21 @@ fn drawgrid(term: &mut Terminal) {
 }
 
 fn drawposmarkers(term: &mut Terminal) {
-    let (cols, rows) = term.size();
-    let cellcountx = cols / 7;
-    let cellcounty = rows / 4;
-    let screenx = ((cellcountx / 2) * 7) + 4;
-    let screeny = ((cellcounty / 2) * 4) + 1;
-    let sc = ScreenCell{
-        pos: Pos{ x: 0, y: 0, z: 0},
-        screenpos: ScreenPos{ row: screeny, col: screenx },
+    let mut sc = ScreenCell{
+        pos: Pos::new(0, 0, 0),
+        screenpos: ScreenPos::new(CELL_CENTER_ROW, CELL_CENTER_COL),
     };
-    printline(term, sc.contents_screenpos(0, -3), &sc.pos.fmt());
-    for direction1 in [Direction::NorthEast, Direction::SouthEast, Direction::SouthWest, Direction::NorthWest, Direction::South, Direction::North].iter() {
+    while inside_bounds(&term, sc.screenpos) {
+        printline(term, sc.contents_screenpos(0, -3), &sc.pos.fmt());
         let mut sc2 = sc;
-        while inside_bounds(&term, sc2.screenpos) {
-            sc2 = sc2.neighbor(*direction1);
+        for direction in [Direction::SouthEast, Direction::NorthEast].iter().cycle() {
+            sc2 = sc2.neighbor(*direction);
+            if !inside_bounds(&term, sc2.screenpos) {
+                break;
+            }
             printline(term, sc2.contents_screenpos(0, -3), &sc2.pos.fmt());
         }
+        sc = sc.neighbor(Direction::South);
     }
 }
 
