@@ -1,6 +1,6 @@
 use num::integer::Integer;
 use rustty::{Terminal, Event};
-use hexpos::{Pos, Direction};
+use hexpos::{Pos, AxialPos, Direction};
 
 extern crate num;
 extern crate rustty;
@@ -165,18 +165,49 @@ fn drawposmarkers(term: &mut Terminal) {
     }
 }
 
+fn drawwalls(term: &mut Terminal, map: &[bool]) {
+    let cellit = VisibleCellIterator::new(ScreenCell::refcell(), term.cols(), term.rows());
+    for sc in cellit {
+        if iswall(sc.pos.to_axialpos(), map) {
+            printline(term, sc.contents_screenpos(-1, -1), "***");
+        }
+    }
+}
+
 fn drawunit(term: &mut Terminal, pos: Pos) {
     let refcell = ScreenCell::refcell();
     let sc = refcell.relative_cell(pos);
     term[sc.contents_screenpos(1, 0).astuple()].set_ch('X');
 }
 
+fn iswall(pos: AxialPos, map: &[bool]) -> bool {
+    if pos.q < 0 || pos.r < 0 || pos.q >= 4 || pos.r >= 4 {
+        // out of bounds
+        return true
+    }
+    map[(pos.r * 4 + pos.q) as usize]
+}
+
+fn moveunit(pos: Pos, direction: Direction, map: &[bool]) -> Pos {
+    let newpos = pos.neighbor(direction);
+    if iswall(newpos.to_axialpos(), map) { pos } else { newpos }
+}
+
 fn main() {
+    // top left corner is 0, 0 in axial. arrays below are rows of columns (axial pos).
+    // true == wall. outside map == wall
+    let map = [
+        false, false, false, false,
+        false, false, false, false,
+        false, false, true, false,
+        false, false, false, false,
+    ];
     let mut unitpos = Pos::new(0, 0, 0);
     loop {
         let mut term = Terminal::new().unwrap();
         drawgrid(&mut term);
         drawposmarkers(&mut term);
+        drawwalls(&mut term, &map);
         drawunit(&mut term, unitpos);
         let _ = term.swap_buffers();
         match term.get_event(-1) {
@@ -186,7 +217,7 @@ fn main() {
                 }
                 match direction_for_key(k) {
                     Some(d) => {
-                        unitpos = unitpos.neighbor(d);
+                        unitpos = moveunit(unitpos, d, &map);
                     },
                     None => {},
                 };
