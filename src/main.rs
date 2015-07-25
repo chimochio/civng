@@ -9,7 +9,7 @@ const CELL_HEIGHT: usize = 4;
 const CELL_CENTER_COL: usize = 4;
 const CELL_CENTER_ROW: usize = 1;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 enum Direction {
     North,
     NorthEast,
@@ -112,6 +112,52 @@ impl ScreenCell {
     }
 }
 
+struct VisibleCellIterator {
+    screen_cols: usize,
+    screen_rows: usize,
+    leftmost: ScreenCell,
+    current: ScreenCell,
+    direction: Direction,
+}
+
+impl VisibleCellIterator {
+    fn new(topleft: ScreenCell, screen_cols: usize, screen_rows: usize) -> VisibleCellIterator {
+        VisibleCellIterator{
+            screen_cols: screen_cols,
+            screen_rows: screen_rows,
+            leftmost: topleft,
+            current: topleft,
+            direction: Direction::SouthEast,
+        }
+    }
+}
+
+impl Iterator for VisibleCellIterator {
+    type Item = ScreenCell;
+
+    fn next(&mut self) -> Option<ScreenCell> {
+        let screenpos = self.current.screenpos;
+        if screenpos.row < self.screen_rows && screenpos.col < self.screen_cols {
+            let result = self.current;
+            self.current = self.current.neighbor(self.direction);
+            self.direction = if self.direction == Direction::SouthEast { Direction::NorthEast } else { Direction:: SouthEast };
+            Some(result)
+        }
+        else {
+            self.leftmost = self.leftmost.neighbor(Direction::South);
+            let screenpos = self.leftmost.screenpos;
+            if screenpos.row < self.screen_rows && screenpos.col < self.screen_cols {
+                self.current = self.leftmost;
+                self.direction = Direction::SouthEast;
+                Some(self.current)
+            }
+            else {
+                None
+            }
+        }
+    }
+}
+
 fn printline(term: &mut Terminal, screenpos: ScreenPos, line: &str) {
     for (index, ch) in line.chars().enumerate() {
         let x = screenpos.col + index;
@@ -120,11 +166,6 @@ fn printline(term: &mut Terminal, screenpos: ScreenPos, line: &str) {
         }
         term[(screenpos.row, x)].set_ch(ch);
     }
-}
-
-fn inside_bounds(term: &Terminal, screenpos: ScreenPos) -> bool {
-    let (cols, rows) = term.size();
-    screenpos.row < rows && screenpos.col < cols
 }
 
 fn direction_for_key(key: char) -> Option<Direction> {
@@ -159,18 +200,9 @@ fn drawgrid(term: &mut Terminal) {
 }
 
 fn drawposmarkers(term: &mut Terminal) {
-    let mut sc = ScreenCell::refcell();
-    while inside_bounds(&term, sc.screenpos) {
+    let cellit = VisibleCellIterator::new(ScreenCell::refcell(), term.cols(), term.rows());
+    for sc in cellit {
         printline(term, sc.contents_screenpos(0, -3), &sc.pos.fmt());
-        let mut sc2 = sc;
-        for direction in [Direction::SouthEast, Direction::NorthEast].iter().cycle() {
-            sc2 = sc2.neighbor(*direction);
-            if !inside_bounds(&term, sc2.screenpos) {
-                break;
-            }
-            printline(term, sc2.contents_screenpos(0, -3), &sc2.pos.fmt());
-        }
-        sc = sc.neighbor(Direction::South);
     }
 }
 
