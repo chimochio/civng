@@ -161,7 +161,7 @@ fn drawgrid(term: &mut Terminal) {
 fn drawposmarkers(term: &mut Terminal) {
     let cellit = VisibleCellIterator::new(ScreenCell::refcell(), term.cols(), term.rows());
     for sc in cellit {
-        printline(term, sc.contents_screenpos(0, -3), &sc.pos.fmt());
+        printline(term, sc.contents_screenpos(0, -3), &sc.pos.to_axialpos().fmt());
     }
 }
 

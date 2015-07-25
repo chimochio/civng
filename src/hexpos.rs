@@ -1,3 +1,4 @@
+// Awesome resource: http://www.redblobgames.com/grids/hexagons/
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Direction {
@@ -25,6 +26,10 @@ impl Pos {
         }
     }
 
+    pub fn to_axialpos(&self) -> AxialPos {
+        AxialPos::new(self.x, self.z)
+    }
+
     pub fn neighbor(&self, direction: Direction) -> Pos {
         let mut p = *self;
         match direction {
@@ -40,6 +45,29 @@ impl Pos {
 
     pub fn fmt(&self) -> String {
         format!("{},{},{}", self.x, self.y, self.z)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct AxialPos {
+    pub q: i32,
+    pub r: i32,
+}
+
+impl AxialPos {
+    pub fn new(q: i32, r: i32) -> AxialPos {
+        AxialPos {
+            q: q,
+            r: r,
+        }
+    }
+
+    pub fn to_cubepos(&self) -> Pos {
+        Pos::new(self.q, self.r - self.q, self.r)
+    }
+
+    pub fn fmt(&self) -> String {
+        format!("{},{}", self.q, self.r)
     }
 }
 
