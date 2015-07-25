@@ -1,5 +1,5 @@
 use num::integer::Integer;
-use rustty::{Terminal};
+use rustty::{Terminal, Event};
 
 extern crate num;
 extern crate rustty;
@@ -35,6 +35,19 @@ impl Pos {
         }
     }
 
+    fn neighbor(&self, direction: Direction) -> Pos {
+        let mut p = *self;
+        match direction {
+            Direction::North => { p.y += 1; p.z -= 1 },
+            Direction::NorthEast => { p.x += 1; p.z -= 1 },
+            Direction::SouthEast => { p.x += 1; p.y -= 1 },
+            Direction::South => { p.z += 1; p.y -= 1 },
+            Direction::SouthWest => { p.z += 1; p.x -= 1 },
+            Direction::NorthWest => { p.y += 1; p.x -= 1 },
+        }
+        p
+    }
+
     fn fmt(&self) -> String {
         format!("{},{},{}", self.x, self.y, self.z)
     }
@@ -53,6 +66,10 @@ impl ScreenPos {
             col: col,
         }
     }
+
+    fn astuple(&self) -> (usize, usize) {
+        (self.row, self.col)
+    }
 }
 
 /// Representation of a Cell on screen
@@ -63,16 +80,15 @@ struct ScreenCell {
 }
 
 impl ScreenCell {
-    fn neighbor(&self, direction: Direction) -> ScreenCell {
-        let mut p = Pos { x: 0, y: 0, z: 0 };
-        match direction {
-            Direction::North => { p.y += 1; p.z -= 1 },
-            Direction::NorthEast => { p.x += 1; p.z -= 1 },
-            Direction::SouthEast => { p.x += 1; p.y -= 1 },
-            Direction::South => { p.z += 1; p.y -= 1 },
-            Direction::SouthWest => { p.z += 1; p.x -= 1 },
-            Direction::NorthWest => { p.y += 1; p.x -= 1 },
+    fn refcell () -> ScreenCell {
+        ScreenCell{
+            pos: Pos::new(0, 0, 0),
+            screenpos: ScreenPos::new(CELL_CENTER_ROW, CELL_CENTER_COL),
         }
+    }
+
+    fn neighbor(&self, direction: Direction) -> ScreenCell {
+        let p = Pos::new(0, 0, 0).neighbor(direction);
         self.relative_cell(p)
     }
 
@@ -111,6 +127,18 @@ fn inside_bounds(term: &Terminal, screenpos: ScreenPos) -> bool {
     screenpos.row < rows && screenpos.col < cols
 }
 
+fn direction_for_key(key: char) -> Option<Direction> {
+    match key {
+        '8' => Some(Direction::North),
+        '9' => Some(Direction::NorthEast),
+        '3' => Some(Direction::SouthEast),
+        '2' => Some(Direction::South),
+        '1' => Some(Direction::SouthWest),
+        '7' => Some(Direction::NorthWest),
+        _ => None,
+    }
+}
+
 fn drawgrid(term: &mut Terminal) {
     let lines: [&str; 4] = [
         " /     \\      ",
@@ -131,10 +159,7 @@ fn drawgrid(term: &mut Terminal) {
 }
 
 fn drawposmarkers(term: &mut Terminal) {
-    let mut sc = ScreenCell{
-        pos: Pos::new(0, 0, 0),
-        screenpos: ScreenPos::new(CELL_CENTER_ROW, CELL_CENTER_COL),
-    };
+    let mut sc = ScreenCell::refcell();
     while inside_bounds(&term, sc.screenpos) {
         printline(term, sc.contents_screenpos(0, -3), &sc.pos.fmt());
         let mut sc2 = sc;
@@ -149,11 +174,34 @@ fn drawposmarkers(term: &mut Terminal) {
     }
 }
 
+fn drawunit(term: &mut Terminal, pos: Pos) {
+    let refcell = ScreenCell::refcell();
+    let sc = refcell.relative_cell(pos);
+    term[sc.contents_screenpos(1, 0).astuple()].set_ch('X');
+}
+
 fn main() {
-    let mut term = Terminal::new().unwrap();
-    drawgrid(&mut term);
-    drawposmarkers(&mut term);
-    let _ = term.swap_buffers();
-    let _ = term.get_event(-1);
+    let mut unitpos = Pos::new(0, 0, 0);
+    loop {
+        let mut term = Terminal::new().unwrap();
+        drawgrid(&mut term);
+        drawposmarkers(&mut term);
+        drawunit(&mut term, unitpos);
+        let _ = term.swap_buffers();
+        match term.get_event(-1) {
+            Ok(Some(Event::Key(k))) => {
+                if k == 'q' {
+                    break;
+                }
+                match direction_for_key(k) {
+                    Some(d) => {
+                        unitpos = unitpos.neighbor(d);
+                    },
+                    None => {},
+                };
+            },
+            _ => { break; },
+        }
+    }
 }
 
