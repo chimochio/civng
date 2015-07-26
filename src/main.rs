@@ -170,9 +170,10 @@ fn drawposmarkers(term: &mut Terminal) {
 fn drawwalls(term: &mut Terminal, map: &TerrainMap) {
     let cellit = VisibleCellIterator::new(ScreenCell::refcell(), term.cols(), term.rows());
     for sc in cellit {
-        if !map.ispassable(sc.pos.to_axialpos()) {
-            printline(term, sc.contents_screenpos(-1, -1), "***");
-        }
+        let ch = map.get_terrain(sc.pos.to_axialpos()).map_char();
+        let s: String = (0..3).map(|_| ch).collect();
+        printline(term, sc.contents_screenpos(-1, -1), &s);
+        printline(term, sc.contents_screenpos(1, -1), &s);
     }
 }
 
@@ -184,7 +185,7 @@ fn drawunit(term: &mut Terminal, pos: Pos) {
 
 fn moveunit(pos: Pos, direction: Direction, map: &TerrainMap) -> Pos {
     let newpos = pos.neighbor(direction);
-    if map.ispassable(newpos.to_axialpos()) { newpos } else { pos }
+    if map.get_terrain(newpos.to_axialpos()).is_passable() { newpos } else { pos }
 }
 
 fn main() {
