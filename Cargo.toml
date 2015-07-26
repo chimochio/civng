@@ -12,5 +12,5 @@ name = "civng"
 num = "*"
 
 [dependencies.rustty]
-path = "../rustty"
+version = "0.1.4"
 
