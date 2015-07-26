@@ -166,7 +166,6 @@ impl Screen {
             let ch = map.get_terrain(sc.pos.to_axialpos()).map_char();
             let s: String = (0..3).map(|_| ch).collect();
             self.printline(sc.contents_screenpos(-1, -1), &s);
-            self.printline(sc.contents_screenpos(1, -1), &s);
         }
     }
 

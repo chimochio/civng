@@ -1,3 +1,4 @@
+use std::path::Path;
 use rustty::{Event};
 use hexpos::{Pos, Direction};
 use map::TerrainMap;
@@ -30,15 +31,7 @@ fn moveunit(pos: Pos, direction: Direction, map: &TerrainMap) -> Pos {
 fn main() {
     // top left corner is 0, 0 in axial. arrays below are rows of columns (axial pos).
     // true == wall. outside map == wall
-    let map = TerrainMap::new(
-        4, 4,
-        vec![
-            false, false, false, false,
-            false, false, false, false,
-            false, false, true, false,
-            false, false, false, false,
-        ]
-    );
+    let map = TerrainMap::fromfile(Path::new("resources/simplemap.txt"));
     let mut unitpos = Pos::new(0, 0, 0);
     loop {
         let mut screen = Screen::new();
