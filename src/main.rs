@@ -1,11 +1,13 @@
 use num::integer::Integer;
 use rustty::{Terminal, Event};
-use hexpos::{Pos, AxialPos, Direction};
+use hexpos::{Pos, Direction};
+use map::TerrainMap;
 
 extern crate num;
 extern crate rustty;
 
 mod hexpos;
+mod map;
 
 const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
@@ -165,10 +167,10 @@ fn drawposmarkers(term: &mut Terminal) {
     }
 }
 
-fn drawwalls(term: &mut Terminal, map: &[bool]) {
+fn drawwalls(term: &mut Terminal, map: &TerrainMap) {
     let cellit = VisibleCellIterator::new(ScreenCell::refcell(), term.cols(), term.rows());
     for sc in cellit {
-        if iswall(sc.pos.to_axialpos(), map) {
+        if !map.ispassable(sc.pos.to_axialpos()) {
             printline(term, sc.contents_screenpos(-1, -1), "***");
         }
     }
@@ -180,28 +182,23 @@ fn drawunit(term: &mut Terminal, pos: Pos) {
     term[sc.contents_screenpos(1, 0).astuple()].set_ch('X');
 }
 
-fn iswall(pos: AxialPos, map: &[bool]) -> bool {
-    if pos.q < 0 || pos.r < 0 || pos.q >= 4 || pos.r >= 4 {
-        // out of bounds
-        return true
-    }
-    map[(pos.r * 4 + pos.q) as usize]
-}
-
-fn moveunit(pos: Pos, direction: Direction, map: &[bool]) -> Pos {
+fn moveunit(pos: Pos, direction: Direction, map: &TerrainMap) -> Pos {
     let newpos = pos.neighbor(direction);
-    if iswall(newpos.to_axialpos(), map) { pos } else { newpos }
+    if map.ispassable(newpos.to_axialpos()) { newpos } else { pos }
 }
 
 fn main() {
     // top left corner is 0, 0 in axial. arrays below are rows of columns (axial pos).
     // true == wall. outside map == wall
-    let map = [
-        false, false, false, false,
-        false, false, false, false,
-        false, false, true, false,
-        false, false, false, false,
-    ];
+    let map = TerrainMap::new(
+        4, 4,
+        vec![
+            false, false, false, false,
+            false, false, false, false,
+            false, false, true, false,
+            false, false, false, false,
+        ]
+    );
     let mut unitpos = Pos::new(0, 0, 0);
     loop {
         let mut term = Terminal::new().unwrap();
