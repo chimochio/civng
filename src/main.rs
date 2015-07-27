@@ -25,7 +25,7 @@ fn direction_for_key(key: char) -> Option<Direction> {
 
 fn moveunit(pos: Pos, direction: Direction, map: &TerrainMap) -> Pos {
     let newpos = pos.neighbor(direction);
-    if map.get_terrain(newpos.to_axialpos()).is_passable() { newpos } else { pos }
+    if map.get_terrain(newpos).is_passable() { newpos } else { pos }
 }
 
 fn main() {

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::io::Read;
 
-use hexpos::AxialPos;
+use hexpos::Pos;
 
 #[derive(Copy, Clone)]
 pub enum Terrain {
@@ -89,12 +89,13 @@ impl TerrainMap {
         TerrainMap::new(width.unwrap(), height, data)
     }
 
-    pub fn get_terrain(&self, pos: AxialPos) -> Terrain {
-        if pos.q < 0 || pos.r < 0 || pos.q >= self.width || pos.r >= self.height {
+    pub fn get_terrain(&self, pos: Pos) -> Terrain {
+        let opos = pos.to_offset_pos();
+        if opos.x < 0 || opos.y < 0 || opos.x >= self.width || opos.y >= self.height {
             // out of bounds
             return Terrain::Water
         }
-        self.data[(pos.r * self.width + pos.q) as usize]
+        self.data[(opos.y * self.width + opos.x) as usize]
     }
 }
 

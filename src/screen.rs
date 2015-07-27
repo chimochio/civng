@@ -156,14 +156,14 @@ impl Screen {
     pub fn drawposmarkers(&mut self) {
         let cellit = VisibleCellIterator::new(ScreenCell::refcell(), self.term.cols(), self.term.rows());
         for sc in cellit {
-            self.printline(sc.contents_screenpos(0, -3), &sc.pos.to_axialpos().fmt());
+            self.printline(sc.contents_screenpos(0, -3), &sc.pos.to_offset_pos().fmt());
         }
     }
 
     pub fn drawwalls(&mut self, map: &TerrainMap) {
         let cellit = VisibleCellIterator::new(ScreenCell::refcell(), self.term.cols(), self.term.rows());
         for sc in cellit {
-            let ch = map.get_terrain(sc.pos.to_axialpos()).map_char();
+            let ch = map.get_terrain(sc.pos).map_char();
             let s: String = (0..3).map(|_| ch).collect();
             self.printline(sc.contents_screenpos(-1, -1), &s);
         }
