@@ -3,13 +3,16 @@ use rustty::{Event};
 use hexpos::{Pos, Direction};
 use map::TerrainMap;
 use screen::Screen;
+use civ5map::load_civ5map;
 
 extern crate num;
 extern crate rustty;
+extern crate byteorder;
 
 mod hexpos;
 mod map;
 mod screen;
+mod civ5map;
 
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {
@@ -25,13 +28,15 @@ fn direction_for_key(key: char) -> Option<Direction> {
 
 fn moveunit(pos: Pos, direction: Direction, map: &TerrainMap) -> Pos {
     let newpos = pos.neighbor(direction);
+    if !map.get_terrain(pos).is_passable() {
+        // Special case for impoassable startup position. We can move everywhere.
+        return newpos
+    }
     if map.get_terrain(newpos).is_passable() { newpos } else { pos }
 }
 
 fn main() {
-    // top left corner is 0, 0 in axial. arrays below are rows of columns (axial pos).
-    // true == wall. outside map == wall
-    let map = TerrainMap::fromfile(Path::new("resources/simplemap.txt"));
+    let map = load_civ5map(Path::new("resources/pangea-duel.Civ5Map"));
     let mut unitpos = Pos::new(0, 0, 0);
     loop {
         let mut screen = Screen::new();

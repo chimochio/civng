@@ -9,14 +9,20 @@ use hexpos::Pos;
 #[derive(Copy, Clone)]
 pub enum Terrain {
     Plain,
+    Grassland,
+    Desert,
+    Hill,
     Mountain,
     Water,
 }
 
 impl Terrain {
-    pub fn all() -> [Terrain; 3] {
+    pub fn all() -> [Terrain; 6] {
         [
             Terrain::Plain,
+            Terrain::Grassland,
+            Terrain::Desert,
+            Terrain::Hill,
             Terrain::Mountain,
             Terrain::Water,
         ]
@@ -24,20 +30,24 @@ impl Terrain {
 
     pub fn map_char(&self) -> char {
         match *self {
-            Terrain::Plain => '.',
-            Terrain::Mountain => '^',
+            Terrain::Plain => '\'',
+            Terrain::Grassland => '"',
+            Terrain::Desert => ' ',
+            Terrain::Hill => '^',
+            Terrain::Mountain => 'A',
             Terrain::Water => '~',
         }
     }
 
     pub fn is_passable(&self) -> bool {
         match *self {
-            Terrain::Plain => true,
-            Terrain::Mountain | Terrain::Water => false
+            Terrain::Mountain | Terrain::Water => false,
+            _ => true,
         }
     }
 }
 
+// top left corner is 0, 0 in offset pos.
 pub struct TerrainMap {
     width: i32,
     height: i32,
