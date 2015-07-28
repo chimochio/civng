@@ -45,8 +45,8 @@ fn moveunit(pos: Pos, direction: Direction, map: &TerrainMap) -> Pos {
 fn main() {
     let map = load_civ5map(Path::new("resources/pangea-duel.Civ5Map"));
     let mut unitpos = Pos::new(0, 0, 0);
+    let mut screen = Screen::new();
     loop {
-        let mut screen = Screen::new();
         screen.draw(&map, unitpos);
         match screen.term.get_event(-1) {
             Ok(Some(Event::Key(k))) => {
