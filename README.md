@@ -36,6 +36,12 @@ To build `civng`, make sure you have all requirements, then do:
 You have to run the executable at the root of the project because paths for some needed resources
 are hardcoded.
 
+## Hex cells orientation
+
+In Civ 5, hex cells are "pointy topped", but in `civng`, our cells are "flat topped". This is
+because it's much harder to ascii-draw a good-looking pointy-topped cell than a flat topped one.
+This changes significantly how maps look, but it shouldn't affect gameplay.
+
 [rust]: http://www.rust-lang.org/
 [cargo]: https://crates.io/
 [boxdrawing]: https://en.wikipedia.org/wiki/Box-drawing_character
