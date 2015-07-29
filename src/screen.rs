@@ -143,19 +143,21 @@ impl Screen {
 
     pub fn drawgrid(&mut self) {
         let lines: [&str; 4] = [
-            " /     \\      ",
-            "/       \\ _ _ ",
-            "\\       /     ",
-            " \\ _ _ /      ",
+            " ╱     ╲      ",
+            "╱       ╲_____",
+            "╲       ╱     ",
+            " ╲_____╱      ",
         ];
         let (cols, rows) = self.term.size();
-        let colrepeatcount = cols / lines[0].len();
+        // Don't use len(), it counts *bytes*.
+        let linewidth = lines[0].chars().count();
+        let colrepeatcount = cols / linewidth;
         for y in 0..rows-1 {
             for colrepeat in 0..colrepeatcount {
-                let x = colrepeat * lines[0].len();
+                let x = colrepeat * linewidth;
                 let (_, lineno) = y.div_rem(&lines.len());
                 let line = lines[lineno];
-                self.printline(ScreenPos{ row: y, col: x }, line);
+                self.printline(ScreenPos::new(y, x), line);
             }
         }
     }

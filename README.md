@@ -18,14 +18,15 @@ Very early. Features:
 * Move around a cute `X` unit with the numpad (have numlock on!).
 * Basic terrain types, with some of them impassable.
 
-## Build
-
-To build `civng`, you need:
+## Requirements
 
 * [Rust][rust] 1.1
 * [Cargo][cargo]
+* A terminal using a font that supports [Unicode box-drawing characters][boxdrawing]
 
-Then:
+## Build
+
+To build `civng`, make sure you have all requirements, then do:
 
     git clone https://github.com/hsoft/civng.git
     cd civng
@@ -37,4 +38,5 @@ are hardcoded.
 
 [rust]: http://www.rust-lang.org/
 [cargo]: https://crates.io/
+[boxdrawing]: https://en.wikipedia.org/wiki/Box-drawing_character
 
