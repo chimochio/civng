@@ -36,6 +36,18 @@ To build `civng`, make sure you have all requirements, then do:
 You have to run the executable at the root of the project because paths for some needed resources
 are hardcoded.
 
+### Tests & documentation
+
+There are a couple of doctests which you can run with:
+
+    cargo test
+
+You can also generate an API documentation with:
+
+    cargo doc
+
+and then open `target/doc/civng/index.html`.
+
 ## Hex cells orientation
 
 In Civ 5, hex cells are "pointy topped", but in `civng`, our cells are "flat topped". This is

@@ -5,6 +5,10 @@
  * http://www.gnu.org/licenses/gpl-3.0.html
  */
 
+//! Manages map information (terrain and stuff).
+//!
+//! Map coordinates are in `OffsetPos` because that's the easiest layout for serialization.
+
 use std::fs::File;
 use std::path::Path;
 use std::collections::HashMap;
@@ -13,6 +17,9 @@ use std::io::Read;
 
 use hexpos::Pos;
 
+/// Terrain type
+///
+/// Each tile in civng has a terrain type, which is represented by this structure.
 #[derive(Copy, Clone)]
 pub enum Terrain {
     Plain,
@@ -35,6 +42,7 @@ impl Terrain {
         ]
     }
 
+    /// Returns the character representing a particular terrain on screen.
     pub fn map_char(&self) -> char {
         match *self {
             Terrain::Plain => '\'',
@@ -46,6 +54,7 @@ impl Terrain {
         }
     }
 
+    /// Returns whether the terrain is passable by our moving unit.
     pub fn is_passable(&self) -> bool {
         match *self {
             Terrain::Mountain | Terrain::Water => false,
@@ -54,7 +63,9 @@ impl Terrain {
     }
 }
 
-// top left corner is 0, 0 in offset pos.
+/// Map of terrain tiles
+///
+/// top left corner is (0, 0) in offset pos.
 pub struct TerrainMap {
     width: i32,
     height: i32,
@@ -73,6 +84,14 @@ impl TerrainMap {
         }
     }
 
+    /// Loads terrain map from text file.
+    ///
+    /// The file is a series of lines of the same length, each character representing a terrain
+    /// tile. That character is defined by `Terrain.map_char()`.
+    ///
+    /// If the character can't be recognized, it defaults as Water.
+    ///
+    /// Panics if anything goes wrong.
     pub fn fromfile(path: &Path) -> TerrainMap {
         let fp = File::open(path).unwrap();
         let mut width: Option<i32> = None;
@@ -106,6 +125,9 @@ impl TerrainMap {
         TerrainMap::new(width.unwrap(), height, data)
     }
 
+    /// Returns terrain at a particular pos.
+    ///
+    /// We take care of converting `Pos` into `OffsetPos`. If out of bounds, returns Water.
     pub fn get_terrain(&self, pos: Pos) -> Terrain {
         let opos = pos.to_offset_pos();
         if opos.x < 0 || opos.y < 0 || opos.x >= self.width || opos.y >= self.height {

@@ -5,11 +5,21 @@
  * http://www.gnu.org/licenses/gpl-3.0.html
  */
 
+//! Pure (UI-less) hex cell positioning logic. Inspired from this
+//! [awesome resrouce on the subject](http://www.redblobgames.com/grids/hexagons/).
+//!
+//! The vocabulary here is entirely borrowed from that referenced article, so you can lookup there
+//! for reference.
+//!
+//! Note that this module assumes a "flat-topped" hex grid.
+//!
+//! `i32` is chosen as a base integer type because positions in hex grids often have to go negative
+//! even with a top-left origin.
+
 use num::integer::Integer;
 
-// Awesome resource: http://www.redblobgames.com/grids/hexagons/
-
-#[derive(Copy, Clone, PartialEq)]
+/// Possible move directions in a flat-topped hex grid
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Direction {
     North,
     NorthEast,
@@ -19,9 +29,8 @@ pub enum Direction {
     NorthWest,
 }
 
-/* "Cube"-type position. We simply call it Pos for conciseness because that's our "official" pos.
- */
-#[derive(Copy, Clone)]
+/// "Cube"-type position. We simply call it `Pos` for conciseness because that's our "official" pos.
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Pos {
     pub x: i32,
     pub y: i32,
@@ -37,6 +46,11 @@ impl Pos {
         }
     }
 
+    /// Returns pos `(0, 0, 0)`
+    pub fn origin() -> Pos {
+        Pos::new(0, 0, 0)
+    }
+
     pub fn to_axialpos(&self) -> AxialPos {
         AxialPos::new(self.x, self.z)
     }
@@ -49,6 +63,33 @@ impl Pos {
         OffsetPos::new(x, y)
     }
 
+    /// Multiplies `self` by `factor`.
+    ///
+    /// This increases the distance to our origin by that factor.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use civng::hexpos::{Pos, Direction};
+    ///
+    /// let mut pos1 = Pos::origin();
+    /// for _ in 0..3 {
+    ///     pos1 = pos1.neighbor(Direction::South);
+    /// }
+    /// let pos2 = Pos::origin().neighbor(Direction::South).amplify(3);
+    /// assert_eq!(pos1, pos2);
+    /// ```
+    pub fn amplify(&self, factor: i32) -> Pos {
+        Pos::new(
+            self.x * factor,
+            self.y * factor,
+            self.z * factor,
+        )
+    }
+
+    /// Returns a pos relative to `self` when moving in the specified `direction`.
+    ///
+    /// By "moving", we mean moving a distance of a single cell.
     pub fn neighbor(&self, direction: Direction) -> Pos {
         let mut p = *self;
         match direction {
@@ -90,8 +131,9 @@ impl AxialPos {
     }
 }
 
-/* "odd-q" type. Origin is top-left. (1, 0) is SouthEast of origin. (0, 1) is South.
- */
+/// "odd-q" type of Offset position.
+///
+/// Origin is top-left. `(1, 0)` is SouthEast of origin. `(0, 1)` is South.
 #[derive(Copy, Clone)]
 pub struct OffsetPos {
     pub x: i32,
@@ -120,3 +162,4 @@ impl OffsetPos {
         format!("{},{}", self.x, self.y)
     }
 }
+

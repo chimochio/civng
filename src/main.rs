@@ -7,19 +7,15 @@
 
 use std::path::Path;
 use rustty::{Event};
-use hexpos::{Pos, Direction};
-use map::TerrainMap;
-use screen::Screen;
-use civ5map::load_civ5map;
+pub use civng::hexpos::{Pos, Direction};
+use civng::map::TerrainMap;
+use civng::screen::Screen;
+use civng::civ5map::load_civ5map;
 
 extern crate num;
 extern crate rustty;
 extern crate byteorder;
-
-mod hexpos;
-mod map;
-mod screen;
-mod civ5map;
+extern crate civng;
 
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {

@@ -5,8 +5,8 @@ version = "0.0.1"
 authors = [ "Virgil Dupras <hsoft@hardcoded.net>" ]
 
 [[bin]]
-
 name = "civng"
+doc = false
 
 [dependencies]
 num = "*"
