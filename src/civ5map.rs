@@ -15,6 +15,7 @@ use byteorder::{LittleEndian, ReadBytesExt};
 
 use map::{Terrain, TerrainMap};
 
+#[allow(dead_code)]
 struct MapHeader {
     version: u8,
     width: u32,
@@ -30,6 +31,7 @@ struct MapHeader {
     unknown: String,
 }
 
+#[allow(dead_code)]
 struct MapTile {
     terrain_id: u8,
     resource_id: u8,
@@ -94,7 +96,7 @@ fn load_map_tiles(fp: &mut File, len: u32) -> Vec<MapTile>{
     let mut result: Vec<MapTile> = Vec::new();
     for _ in 0..len {
         let mut bytes: [u8; 8] = [0; 8];
-        fp.read(&mut bytes);
+        let _ = fp.read(&mut bytes);
         result.push(MapTile {
             terrain_id: bytes[0],
             resource_id: bytes[1],
