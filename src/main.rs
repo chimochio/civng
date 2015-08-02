@@ -6,16 +6,24 @@
  */
 
 use std::path::Path;
+
 use rustty::{Event};
+
 pub use civng::hexpos::{Pos, Direction};
 use civng::map::TerrainMap;
-use civng::screen::Screen;
+use civng::screen::{Screen, DisplayOption};
 use civng::civ5map::load_civ5map;
 
 extern crate num;
 extern crate rustty;
 extern crate byteorder;
 extern crate civng;
+
+struct Game {
+    screen: Screen,
+    map: TerrainMap,
+    unitpos: Pos,
+}
 
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {
@@ -38,25 +46,39 @@ fn moveunit(pos: Pos, direction: Direction, map: &TerrainMap) -> Pos {
     if map.get_terrain(newpos).is_passable() { newpos } else { pos }
 }
 
+/// Returns whether the mainloop should continue
+fn handle_events(game: &mut Game) -> bool {
+    match game.screen.term.get_event(-1) {
+        Ok(Some(Event::Key(k))) => {
+            if k == 'q' {
+                return false;
+            }
+            if k == 'p' {
+                game.screen.toggle_option(DisplayOption::PosMarkers);
+            }
+            match direction_for_key(k) {
+                Some(d) => {
+                    game.unitpos = moveunit(game.unitpos, d, &game.map);
+                },
+                None => {},
+            };
+        },
+        _ => { return false; },
+    }
+    true
+}
+
 fn main() {
     let map = load_civ5map(Path::new("resources/pangea-duel.Civ5Map"));
-    let mut unitpos = Pos::new(0, 0, 0);
-    let mut screen = Screen::new();
+    let mut game = Game {
+        screen: Screen::new(),
+        map: map,
+        unitpos: Pos::new(0, 0, 0),
+    };
     loop {
-        screen.draw(&map, unitpos);
-        match screen.term.get_event(-1) {
-            Ok(Some(Event::Key(k))) => {
-                if k == 'q' {
-                    break;
-                }
-                match direction_for_key(k) {
-                    Some(d) => {
-                        unitpos = moveunit(unitpos, d, &map);
-                    },
-                    None => {},
-                };
-            },
-            _ => { break; },
+        game.screen.draw(&game.map, game.unitpos);
+        if !handle_events(&mut game) {
+            break;
         }
     }
 }

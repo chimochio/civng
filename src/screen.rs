@@ -7,6 +7,8 @@
 
 //! Represent hex cells *in the context of a terminal UI*.
 
+use std::collections::HashSet;
+
 use num::integer::Integer;
 
 // Re-export for doctests
@@ -163,24 +165,45 @@ impl Iterator for VisibleCellIterator {
     }
 }
 
+/// Various display options that can be enabled in `Screen`.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DisplayOption {
+    /// Show positional markers in each hex cell.
+    PosMarkers,
+}
 /// Takes care of drawing everything we need to draw on screen.
 ///
 /// This wraps's rustty's `Terminal` singleton, so any dealing we have with the terminal has to
 /// go through this struct.
 pub struct Screen {
     pub term: Terminal,
+    options: HashSet<DisplayOption>,
 }
 
 impl Screen {
     pub fn new() -> Screen {
         Screen {
             term: Terminal::new().unwrap(),
+            options: HashSet::new(),
         }
     }
 
     pub fn printline(&mut self, screenpos: ScreenPos, line: &str) {
         let (x, y) = screenpos.astuple();
         self.term.printline(x, y, line);
+    }
+
+    pub fn has_option(&self, option:DisplayOption) -> bool {
+        self.options.contains(&option)
+    }
+
+    pub fn toggle_option(&mut self, option: DisplayOption) {
+        if self.options.contains(&option) {
+            self.options.remove(&option);
+        }
+        else {
+            self.options.insert(option);
+        }
     }
 
     /// Fills the screen with a hex grid.
@@ -239,7 +262,9 @@ impl Screen {
     /// we're moving around.
     pub fn draw(&mut self, map: &TerrainMap, unitpos: Pos) {
         self.drawgrid();
-        self.drawposmarkers();
+        if self.has_option(DisplayOption::PosMarkers) {
+            self.drawposmarkers();
+        }
         self.drawwalls(map);
         self.drawunit(unitpos);
         let _ = self.term.swap_buffers();
