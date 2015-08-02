@@ -35,7 +35,7 @@ impl ScreenPos {
     }
 
     pub fn astuple(&self) -> (usize, usize) {
-        (self.row, self.col)
+        (self.col, self.row)
     }
 }
 
@@ -179,7 +179,8 @@ impl Screen {
     }
 
     pub fn printline(&mut self, screenpos: ScreenPos, line: &str) {
-        self.term.printline(screenpos.row, screenpos.col, line);
+        let (x, y) = screenpos.astuple();
+        self.term.printline(x, y, line);
     }
 
     /// Fills the screen with a hex grid.
@@ -190,11 +191,10 @@ impl Screen {
             "╲       ╱     ",
             " ╲_____╱      ",
         ];
-        let (cols, rows) = self.term.size();
         // Don't use len(), it counts *bytes*.
         let linewidth = lines[0].chars().count();
-        let colrepeatcount = cols / linewidth;
-        for y in 0..rows-1 {
+        let colrepeatcount = self.term.cols() / linewidth;
+        for y in 0..self.term.rows() {
             for colrepeat in 0..colrepeatcount {
                 let x = colrepeat * linewidth;
                 let (_, lineno) = y.div_rem(&lines.len());
@@ -226,7 +226,11 @@ impl Screen {
     pub fn drawunit(&mut self, pos: Pos) {
         let refcell = ScreenCell::refcell();
         let sc = refcell.relative_cell(pos);
-        self.term[sc.contents_screenpos(1, 0).astuple()].set_ch('X');
+        let (x, y) = sc.contents_screenpos(1, 0).astuple();
+        match self.term.get_mut(x, y) {
+            Some(cell) => { cell.set_ch('X'); },
+            None => {}, // ignore
+        };
     }
 
     /// Draws everything we're supposed to draw.
