@@ -14,9 +14,7 @@ use civng::map::TerrainMap;
 use civng::screen::{Screen, DisplayOption};
 use civng::civ5map::load_civ5map;
 
-extern crate num;
 extern crate rustty;
-extern crate byteorder;
 extern crate civng;
 
 struct Game {
