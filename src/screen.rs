@@ -58,9 +58,9 @@ impl ScreenCell {
     /// Reference (origin) cell.
     ///
     /// That is, the origin `Pos`, mapped to the top-left corner of the screen.
-    pub fn refcell () -> ScreenCell {
+    pub fn refcell(origin: Pos) -> ScreenCell {
         ScreenCell{
-            pos: Pos::new(0, 0, 0),
+            pos: origin,
             screenpos: ScreenPos::new(CELL_CENTER_ROW, CELL_CENTER_COL),
         }
     }
@@ -78,11 +78,12 @@ impl ScreenCell {
     /// use civng::hexpos::{Direction, Pos};
     /// use civng::screen::ScreenCell;
     ///
-    /// let mut cell1 = ScreenCell::refcell();
+    /// let refcell = ScreenCell::refcell(Pos::origin());
+    /// let mut cell1 = refcell;
     /// for _ in 0..3 {
     ///     cell1 = cell1.neighbor(Direction::North);
     /// }
-    /// let cell2 = ScreenCell::refcell().relative_cell(Pos::origin().neighbor(Direction::North).amplify(3));
+    /// let cell2 = refcell.relative_cell(Pos::origin().neighbor(Direction::North).amplify(3));
     /// assert_eq!(cell1, cell2);
     /// ```
     pub fn relative_cell(&self, relative_pos: Pos) -> ScreenCell {
@@ -103,10 +104,11 @@ impl ScreenCell {
     ///
     /// # Examples
     /// ```
+    /// use civng::hexpos::Pos;
     /// use civng::screen::{Terminal, ScreenCell};
     ///
     /// let mut term = Terminal::new().unwrap();
-    /// let cell = ScreenCell::refcell();
+    /// let cell = ScreenCell::refcell(Pos::origin());
     /// let pos = cell.contents_screenpos(1, 3);
     /// // Prints a 'X' in the upper-center of the tile.
     /// term[pos.astuple()].set_ch('X');
@@ -178,6 +180,8 @@ pub enum DisplayOption {
 pub struct Screen {
     pub term: Terminal,
     options: HashSet<DisplayOption>,
+    /// Position of the cell at the top-left corner of the screen
+    origin: Pos,
 }
 
 impl Screen {
@@ -185,6 +189,7 @@ impl Screen {
         Screen {
             term: Terminal::new().unwrap(),
             options: HashSet::new(),
+            origin: Pos::new(1, -1, 0),
         }
     }
 
@@ -204,6 +209,19 @@ impl Screen {
         else {
             self.options.insert(option);
         }
+    }
+
+    // ">= 0" checks are useless because of usize, but it seems dangerous to leave them out. If we
+    // ever adopt a signed int, we might introduce a bug here without knowing.
+    #[allow(unused_comparisons)]
+    fn is_cell_visible(&self, cell: ScreenCell) -> bool {
+        let (x, y) = cell.screenpos.astuple();
+        y >= 0 && x >= 0 && y < self.term.rows() && x < self.term.cols()
+    }
+
+    fn visible_cells(&self) -> VisibleCellIterator {
+        let topleft = ScreenCell::refcell(self.origin);
+        VisibleCellIterator::new(topleft, self.term.cols(), self.term.rows())
     }
 
     /// Fills the screen with a hex grid.
@@ -229,16 +247,14 @@ impl Screen {
 
     /// Draws position marks in each hex cell on the screen.
     pub fn drawposmarkers(&mut self) {
-        let cellit = VisibleCellIterator::new(ScreenCell::refcell(), self.term.cols(), self.term.rows());
-        for sc in cellit {
+        for sc in self.visible_cells() {
             self.printline(sc.contents_screenpos(0, -3), &sc.pos.to_offset_pos().fmt());
         }
     }
 
     /// Draws terrain information in each visible cell.
     pub fn drawwalls(&mut self, map: &TerrainMap) {
-        let cellit = VisibleCellIterator::new(ScreenCell::refcell(), self.term.cols(), self.term.rows());
-        for sc in cellit {
+        for sc in self.visible_cells() {
             let ch = map.get_terrain(sc.pos).map_char();
             let s: String = (0..3).map(|_| ch).collect();
             self.printline(sc.contents_screenpos(-1, -1), &s);
@@ -247,12 +263,14 @@ impl Screen {
 
     /// Draws a 'X' at specified `pos`.
     pub fn drawunit(&mut self, pos: Pos) {
-        let refcell = ScreenCell::refcell();
-        let sc = refcell.relative_cell(pos);
-        let (x, y) = sc.contents_screenpos(1, 0).astuple();
-        match self.term.get_mut(x, y) {
-            Some(cell) => { cell.set_ch('X'); },
-            None => {}, // ignore
+        let refcell = ScreenCell::refcell(self.origin);
+        let sc = refcell.relative_cell(pos.translate(self.origin.neg()));
+        if self.is_cell_visible(sc) {
+            let (x, y) = sc.contents_screenpos(1, 0).astuple();
+            match self.term.get_mut(x, y) {
+                Some(cell) => { cell.set_ch('X'); },
+                None => {}, // ignore
+            };
         };
     }
 

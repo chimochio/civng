@@ -63,6 +63,26 @@ impl Pos {
         OffsetPos::new(x, y)
     }
 
+    /// Translates `self` by `other`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use civng::hexpos::{Pos, Direction};
+    ///
+    /// let pos1 = Pos::origin().neighbor(Direction::South);
+    /// let pos2 = Pos::origin().neighbor(Direction::SouthWest);
+    /// let pos3 = Pos::origin().neighbor(Direction::South).neighbor(Direction::SouthWest);
+    /// assert_eq!(pos1.translate(pos2), pos3);
+    /// ```
+    pub fn translate(&self, other: Pos) -> Pos {
+        Pos::new(
+            self.x + other.x,
+            self.y + other.y,
+            self.z + other.z,
+        )
+    }
+
     /// Multiplies `self` by `factor`.
     ///
     /// This increases the distance to our origin by that factor.
@@ -84,6 +104,25 @@ impl Pos {
             self.x * factor,
             self.y * factor,
             self.z * factor,
+        )
+    }
+
+    /// Returns cell at the opposite side of the origin.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use civng::hexpos::{Pos, Direction};
+    ///
+    /// let pos1 = Pos::origin().neighbor(Direction::South).neighbor(Direction::SouthWest);
+    /// let pos2 = Pos::origin().neighbor(Direction::North).neighbor(Direction::NorthEast);
+    /// assert_eq!(pos1, pos2.neg());
+    /// ```
+    pub fn neg(&self) -> Pos {
+        Pos::new(
+            -self.x,
+            -self.y,
+            -self.z,
         )
     }
 
