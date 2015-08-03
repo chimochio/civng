@@ -15,8 +15,9 @@ Very early. Features:
 
 * Text-based hexagonal tiles UI.
 * Loads ".Civ5Map" files.
-* Move around a cute `X` unit with the numpad (have numlock on!).
+* Move around a cute `X` unit.
 * Basic terrain types, with some of them impassable.
+* Map scrolling.
 
 ## Requirements
 
@@ -53,6 +54,20 @@ and then open `target/doc/civng/index.html`.
 In Civ 5, hex cells are "pointy topped", but in `civng`, our cells are "flat topped". This is
 because it's much harder to ascii-draw a good-looking pointy-topped cell than a flat topped one.
 This changes significantly how maps look, but it shouldn't affect gameplay.
+
+## Usage
+
+The app starts with the top left cell of the screen being the top left cell of the map. There's a
+`X` unit on it. You can move it with the keypad, but make sure you have numlock enabled.
+
+Water `~` and mountains `A` are impassable, except at the beginning because our `X` unit starts on
+water. Until the `X` unit reaches passable terrain, it can go anywhere. After that, it can't pass
+through impassable terrain.
+
+You can toggle position markers with `p`.
+
+You can scroll the map! To do so, press `s` to toggle scroll mode. Now, when you press numpad keys,
+it's the map that will scroll instead of unit movement.
 
 [rust]: http://www.rust-lang.org/
 [cargo]: https://crates.io/

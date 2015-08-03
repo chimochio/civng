@@ -21,6 +21,7 @@ struct Game {
     screen: Screen,
     map: TerrainMap,
     unitpos: Pos,
+    scrollmode: bool, // tmp hack
 }
 
 fn direction_for_key(key: char) -> Option<Direction> {
@@ -54,9 +55,17 @@ fn handle_events(game: &mut Game) -> bool {
             if k == 'p' {
                 game.screen.toggle_option(DisplayOption::PosMarkers);
             }
+            if k == 's' {
+                game.scrollmode = !game.scrollmode;
+            }
             match direction_for_key(k) {
                 Some(d) => {
-                    game.unitpos = moveunit(game.unitpos, d, &game.map);
+                    if game.scrollmode {
+                        game.screen.scroll(Pos::origin().neighbor(d));
+                    }
+                    else {
+                        game.unitpos = moveunit(game.unitpos, d, &game.map);
+                    }
                 },
                 None => {},
             };
@@ -72,6 +81,7 @@ fn main() {
         screen: Screen::new(),
         map: map,
         unitpos: Pos::new(0, 0, 0),
+        scrollmode: false,
     };
     loop {
         game.screen.draw(&game.map, game.unitpos);

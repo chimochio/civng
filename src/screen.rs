@@ -180,8 +180,8 @@ pub enum DisplayOption {
 pub struct Screen {
     pub term: Terminal,
     options: HashSet<DisplayOption>,
-    /// Position of the cell at the top-left corner of the screen
-    origin: Pos,
+    /// Cell at the top-left corner of the screen
+    refcell: ScreenCell,
 }
 
 impl Screen {
@@ -189,7 +189,7 @@ impl Screen {
         Screen {
             term: Terminal::new().unwrap(),
             options: HashSet::new(),
-            origin: Pos::new(1, -1, 0),
+            refcell: ScreenCell::refcell(Pos::origin()),
         }
     }
 
@@ -211,6 +211,10 @@ impl Screen {
         }
     }
 
+    pub fn scroll(&mut self, by: Pos) {
+        self.refcell = ScreenCell::refcell(self.refcell.pos.translate(by));
+    }
+
     // ">= 0" checks are useless because of usize, but it seems dangerous to leave them out. If we
     // ever adopt a signed int, we might introduce a bug here without knowing.
     #[allow(unused_comparisons)]
@@ -220,12 +224,11 @@ impl Screen {
     }
 
     fn visible_cells(&self) -> VisibleCellIterator {
-        let topleft = ScreenCell::refcell(self.origin);
-        VisibleCellIterator::new(topleft, self.term.cols(), self.term.rows())
+        VisibleCellIterator::new(self.refcell, self.term.cols(), self.term.rows())
     }
 
     /// Fills the screen with a hex grid.
-    pub fn drawgrid(&mut self) {
+    fn drawgrid(&mut self) {
         let lines: [&str; 4] = [
             " ╱     ╲      ",
             "╱       ╲_____",
@@ -246,14 +249,14 @@ impl Screen {
     }
 
     /// Draws position marks in each hex cell on the screen.
-    pub fn drawposmarkers(&mut self) {
+    fn drawposmarkers(&mut self) {
         for sc in self.visible_cells() {
             self.printline(sc.contents_screenpos(0, -3), &sc.pos.to_offset_pos().fmt());
         }
     }
 
     /// Draws terrain information in each visible cell.
-    pub fn drawwalls(&mut self, map: &TerrainMap) {
+    fn drawwalls(&mut self, map: &TerrainMap) {
         for sc in self.visible_cells() {
             let ch = map.get_terrain(sc.pos).map_char();
             let s: String = (0..3).map(|_| ch).collect();
@@ -262,9 +265,8 @@ impl Screen {
     }
 
     /// Draws a 'X' at specified `pos`.
-    pub fn drawunit(&mut self, pos: Pos) {
-        let refcell = ScreenCell::refcell(self.origin);
-        let sc = refcell.relative_cell(pos.translate(self.origin.neg()));
+    fn drawunit(&mut self, pos: Pos) {
+        let sc = self.refcell.relative_cell(pos.translate(self.refcell.pos.neg()));
         if self.is_cell_visible(sc) {
             let (x, y) = sc.contents_screenpos(1, 0).astuple();
             match self.term.get_mut(x, y) {
