@@ -13,6 +13,7 @@ use num::integer::Integer;
 
 // Re-export for doctests
 pub use rustty::{Terminal, CellAccessor};
+use rustty::Pos as ScreenPos;
 use rustty::ui::{Window, Painter};
 
 use hexpos::{Pos, Direction};
@@ -22,25 +23,6 @@ const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
 const CELL_CENTER_COL: usize = 4;
 const CELL_CENTER_ROW: usize = 1;
-
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub struct ScreenPos {
-    row: usize,
-    col: usize,
-}
-
-impl ScreenPos {
-    pub fn new(row: usize, col: usize) -> ScreenPos {
-        ScreenPos {
-            row: row,
-            col: col,
-        }
-    }
-
-    pub fn astuple(&self) -> (usize, usize) {
-        (self.col, self.row)
-    }
-}
 
 /// Representation of a Cell on screen
 ///
@@ -62,7 +44,7 @@ impl ScreenCell {
     pub fn refcell(origin: Pos) -> ScreenCell {
         ScreenCell{
             pos: origin,
-            screenpos: ScreenPos::new(CELL_CENTER_ROW, CELL_CENTER_COL),
+            screenpos: (CELL_CENTER_ROW, CELL_CENTER_COL),
         }
     }
 
@@ -92,11 +74,11 @@ impl ScreenCell {
         p.x += relative_pos.x;
         p.y += relative_pos.y;
         p.z += relative_pos.z;
-        let mut sp = self.screenpos;
-        sp.col = ((sp.col as i32) + relative_pos.x * (CELL_WIDTH as i32)) as usize;
-        sp.row = ((sp.row as i32) - relative_pos.y * ((CELL_HEIGHT / 2) as i32)) as usize;
-        sp.row = ((sp.row as i32) + relative_pos.z * ((CELL_HEIGHT / 2) as i32)) as usize;
-        ScreenCell { pos: p, screenpos: sp }
+        let (mut spx, mut spy) = self.screenpos;
+        spx = ((spx as i32) + relative_pos.x * (CELL_WIDTH as i32)) as usize;
+        spy = ((spy as i32) - relative_pos.y * ((CELL_HEIGHT / 2) as i32)) as usize;
+        spy = ((spy as i32) + relative_pos.z * ((CELL_HEIGHT / 2) as i32)) as usize;
+        ScreenCell { pos: p, screenpos: (spx, spy) }
     }
 
     /// Returns a `ScreenPos` relative to `self`.
@@ -115,10 +97,10 @@ impl ScreenCell {
     /// term[pos.astuple()].set_ch('X');
     /// ```
     pub fn contents_screenpos(&self, dy: i8, dx: i8) -> ScreenPos {
-        let mut sp = self.screenpos;
-        sp.row = ((sp.row as isize) + (dy as isize)) as usize;
-        sp.col = ((sp.col as isize) + (dx as isize)) as usize;
-        sp
+        let (mut spx, mut spy) = self.screenpos;
+        spy = ((spy as isize) + (dy as isize)) as usize;
+        spx = ((spx as isize) + (dx as isize)) as usize;
+        (spx, spy)
     }
 }
 
@@ -146,8 +128,8 @@ impl Iterator for VisibleCellIterator {
     type Item = ScreenCell;
 
     fn next(&mut self) -> Option<ScreenCell> {
-        let screenpos = self.current.screenpos;
-        if screenpos.row < self.screen_rows && screenpos.col < self.screen_cols {
+        let (spx, spy) = self.current.screenpos;
+        if spy < self.screen_rows && spx < self.screen_cols {
             let result = self.current;
             self.current = self.current.neighbor(self.direction);
             self.direction = if self.direction == Direction::SouthEast { Direction::NorthEast } else { Direction:: SouthEast };
@@ -155,8 +137,8 @@ impl Iterator for VisibleCellIterator {
         }
         else {
             self.leftmost = self.leftmost.neighbor(Direction::South);
-            let screenpos = self.leftmost.screenpos;
-            if screenpos.row < self.screen_rows && screenpos.col < self.screen_cols {
+            let (spx, spy) = self.leftmost.screenpos;
+            if spy < self.screen_rows && spx < self.screen_cols {
                 self.current = self.leftmost;
                 self.direction = Direction::SouthEast;
                 Some(self.current)
@@ -200,7 +182,7 @@ impl Screen {
     }
 
     pub fn printline(&mut self, screenpos: ScreenPos, line: &str) {
-        let (x, y) = screenpos.astuple();
+        let (x, y) = screenpos;
         self.term.printline(x, y, line);
     }
 
@@ -225,7 +207,7 @@ impl Screen {
     // ever adopt a signed int, we might introduce a bug here without knowing.
     #[allow(unused_comparisons)]
     fn is_cell_visible(&self, cell: ScreenCell) -> bool {
-        let (x, y) = cell.screenpos.astuple();
+        let (x, y) = cell.screenpos;
         y >= 0 && x >= 0 && y < self.term.rows() && x < self.term.cols()
     }
 
@@ -249,7 +231,7 @@ impl Screen {
                 let x = colrepeat * linewidth;
                 let (_, lineno) = y.div_rem(&lines.len());
                 let line = lines[lineno];
-                self.printline(ScreenPos::new(y, x), line);
+                self.printline((y, x), line);
             }
         }
     }
@@ -274,7 +256,7 @@ impl Screen {
     fn drawunit(&mut self, pos: Pos) {
         let sc = self.refcell.relative_cell(pos.translate(self.refcell.pos.neg()));
         if self.is_cell_visible(sc) {
-            let (x, y) = sc.contents_screenpos(1, 0).astuple();
+            let (x, y) = sc.contents_screenpos(1, 0);
             match self.term.get_mut(x, y) {
                 Some(cell) => { cell.set_ch('X'); },
                 None => {}, // ignore
