@@ -54,6 +54,17 @@ impl Terrain {
         }
     }
 
+    pub fn name(&self) -> &str {
+        match *self {
+            Terrain::Plain => "Plain",
+            Terrain::Grassland => "Grassland",
+            Terrain::Desert => "Desert",
+            Terrain::Hill => "Hill",
+            Terrain::Mountain => "Mountain",
+            Terrain::Water => "Water",
+        }
+    }
+
     /// Returns whether the terrain is passable by our moving unit.
     pub fn is_passable(&self) -> bool {
         match *self {

@@ -7,7 +7,8 @@
 
 use std::path::Path;
 
-use rustty::{Event};
+use rustty::{Event, Cell, CellAccessor};
+use rustty::ui::Painter;
 
 pub use civng::hexpos::{Pos, Direction};
 use civng::map::TerrainMap;
@@ -16,13 +17,6 @@ use civng::civ5map::load_civ5map;
 
 extern crate rustty;
 extern crate civng;
-
-struct Game {
-    screen: Screen,
-    map: TerrainMap,
-    unitpos: Pos,
-    scrollmode: bool, // tmp hack
-}
 
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {
@@ -36,13 +30,32 @@ fn direction_for_key(key: char) -> Option<Direction> {
     }
 }
 
-fn moveunit(pos: Pos, direction: Direction, map: &TerrainMap) -> Pos {
-    let newpos = pos.neighbor(direction);
-    if !map.get_terrain(pos).is_passable() {
+struct Game {
+    screen: Screen,
+    map: TerrainMap,
+    unitpos: Pos,
+    scrollmode: bool, // tmp hack
+}
+
+impl Game {
+    fn moveunit(&mut self, direction: Direction) {
+        let newpos = self.unitpos.neighbor(direction);
         // Special case for impoassable startup position. We can move everywhere.
-        return newpos
+        if !self.map.get_terrain(self.unitpos).is_passable() || self.map.get_terrain(newpos).is_passable() {
+            self.unitpos = newpos;
+        }
+        self.update_details();
     }
-    if map.get_terrain(newpos).is_passable() { newpos } else { pos }
+
+    fn update_details(&mut self) {
+        self.screen.details_window.clear(Cell::default());
+        let terrain = self.map.get_terrain(self.unitpos);
+        self.screen.details_window.printline(2, 1, terrain.name());
+        if self.scrollmode {
+            self.screen.details_window.printline(2, 2, "Scroll Mode");
+        }
+        self.screen.details_window.draw_box();
+    }
 }
 
 /// Returns whether the mainloop should continue
@@ -57,6 +70,7 @@ fn handle_events(game: &mut Game) -> bool {
             }
             if k == 's' {
                 game.scrollmode = !game.scrollmode;
+                game.update_details();
             }
             match direction_for_key(k) {
                 Some(d) => {
@@ -64,7 +78,7 @@ fn handle_events(game: &mut Game) -> bool {
                         game.screen.scroll(Pos::origin().neighbor(d));
                     }
                     else {
-                        game.unitpos = moveunit(game.unitpos, d, &game.map);
+                        game.moveunit(d);
                     }
                 },
                 None => {},
@@ -83,6 +97,7 @@ fn main() {
         unitpos: Pos::new(0, 0, 0),
         scrollmode: false,
     };
+    game.update_details();
     loop {
         game.screen.draw(&game.map, game.unitpos);
         if !handle_events(&mut game) {

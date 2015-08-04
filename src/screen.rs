@@ -12,7 +12,8 @@ use std::collections::HashSet;
 use num::integer::Integer;
 
 // Re-export for doctests
-pub use rustty::{Terminal};
+pub use rustty::{Terminal, CellAccessor};
+use rustty::ui::{Window, Painter};
 
 use hexpos::{Pos, Direction};
 use map::{TerrainMap};
@@ -182,14 +183,19 @@ pub struct Screen {
     options: HashSet<DisplayOption>,
     /// Cell at the top-left corner of the screen
     refcell: ScreenCell,
+    pub details_window: Window,
 }
 
 impl Screen {
     pub fn new() -> Screen {
+        let term = Terminal::new().unwrap();
+        let (cols, rows) = term.size();
+        let details_window = Window::new(cols-15, rows-4, 15, 4);
         Screen {
-            term: Terminal::new().unwrap(),
+            term: term,
             options: HashSet::new(),
             refcell: ScreenCell::refcell(Pos::origin()),
+            details_window: details_window,
         }
     }
 
@@ -287,6 +293,7 @@ impl Screen {
         }
         self.drawwalls(map);
         self.drawunit(unitpos);
+        self.details_window.draw_into(&mut self.term);
         let _ = self.term.swap_buffers();
     }
 }
