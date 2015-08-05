@@ -44,7 +44,7 @@ impl ScreenCell {
     pub fn refcell(origin: Pos) -> ScreenCell {
         ScreenCell{
             pos: origin,
-            screenpos: (CELL_CENTER_ROW, CELL_CENTER_COL),
+            screenpos: (CELL_CENTER_COL, CELL_CENTER_ROW),
         }
     }
 
@@ -96,10 +96,10 @@ impl ScreenCell {
     /// // Prints a 'X' in the upper-center of the tile.
     /// term[pos.astuple()].set_ch('X');
     /// ```
-    pub fn contents_screenpos(&self, dy: i8, dx: i8) -> ScreenPos {
+    pub fn contents_screenpos(&self, dx: i8, dy: i8) -> ScreenPos {
         let (mut spx, mut spy) = self.screenpos;
-        spy = ((spy as isize) + (dy as isize)) as usize;
         spx = ((spx as isize) + (dx as isize)) as usize;
+        spy = ((spy as isize) + (dy as isize)) as usize;
         (spx, spy)
     }
 }
@@ -181,11 +181,6 @@ impl Screen {
         }
     }
 
-    pub fn printline(&mut self, screenpos: ScreenPos, line: &str) {
-        let (x, y) = screenpos;
-        self.term.printline(x, y, line);
-    }
-
     pub fn has_option(&self, option:DisplayOption) -> bool {
         self.options.contains(&option)
     }
@@ -231,7 +226,7 @@ impl Screen {
                 let x = colrepeat * linewidth;
                 let (_, lineno) = y.div_rem(&lines.len());
                 let line = lines[lineno];
-                self.printline((y, x), line);
+                self.term.printline(x, y, line);
             }
         }
     }
@@ -239,7 +234,8 @@ impl Screen {
     /// Draws position marks in each hex cell on the screen.
     fn drawposmarkers(&mut self) {
         for sc in self.visible_cells() {
-            self.printline(sc.contents_screenpos(0, -3), &sc.pos.to_offset_pos().fmt());
+            let (x, y) = sc.contents_screenpos(-3, 0);
+            self.term.printline(x, y, &sc.pos.to_offset_pos().fmt());
         }
     }
 
@@ -248,7 +244,8 @@ impl Screen {
         for sc in self.visible_cells() {
             let ch = map.get_terrain(sc.pos).map_char();
             let s: String = (0..3).map(|_| ch).collect();
-            self.printline(sc.contents_screenpos(-1, -1), &s);
+            let (x, y) = sc.contents_screenpos(-1, -1);
+            self.term.printline(x, y, &s);
         }
     }
 
@@ -256,7 +253,7 @@ impl Screen {
     fn drawunit(&mut self, pos: Pos) {
         let sc = self.refcell.relative_cell(pos.translate(self.refcell.pos.neg()));
         if self.is_cell_visible(sc) {
-            let (x, y) = sc.contents_screenpos(1, 0);
+            let (x, y) = sc.contents_screenpos(0, 1);
             match self.term.get_mut(x, y) {
                 Some(cell) => { cell.set_ch('X'); },
                 None => {}, // ignore
