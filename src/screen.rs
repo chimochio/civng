@@ -12,7 +12,7 @@ use std::collections::HashSet;
 use num::integer::Integer;
 
 // Re-export for doctests
-pub use rustty::{Terminal, CellAccessor};
+pub use rustty::{Terminal, CellAccessor, Cell, Style, Attr};
 use rustty::Pos as ScreenPos;
 use rustty::ui::{Window, Painter};
 
@@ -240,12 +240,15 @@ impl Screen {
     }
 
     /// Draws terrain information in each visible cell.
-    fn drawwalls(&mut self, map: &TerrainMap) {
+    fn drawterrain(&mut self, map: &TerrainMap) {
         for sc in self.visible_cells() {
             let ch = map.get_terrain(sc.pos).map_char();
-            let s: String = (0..3).map(|_| ch).collect();
-            let (x, y) = sc.contents_screenpos(-1, -1);
+            let s: String = (0..5).map(|_| ch).collect();
+            let (x, y) = sc.contents_screenpos(-2, -1);
             self.term.printline(x, y, &s);
+            let cell = Cell::with_styles(Style::with_attr(Attr::Underline), Style::default());
+            let (x, y) = sc.contents_screenpos(-2, 2);
+            self.term.printline_with_cell(x, y, &s, cell);
         }
     }
 
@@ -270,7 +273,7 @@ impl Screen {
         if self.has_option(DisplayOption::PosMarkers) {
             self.drawposmarkers();
         }
-        self.drawwalls(map);
+        self.drawterrain(map);
         self.drawunit(unitpos);
         self.details_window.draw_into(&mut self.term);
         let _ = self.term.swap_buffers();

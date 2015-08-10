@@ -15,7 +15,9 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::io::Read;
 
-use hexpos::Pos;
+use num::integer::Integer;
+
+use hexpos::{Pos, OffsetPos};
 
 /// Terrain type
 ///
@@ -146,6 +148,12 @@ impl TerrainMap {
             return Terrain::Water
         }
         self.data[(opos.y * self.width + opos.x) as usize]
+    }
+
+    pub fn first_passable(&self) -> Pos {
+        let (index, _) = self.data.iter().enumerate().find(|&(_, &t)| t.is_passable()).unwrap();
+        let (y, x) = (index as i32).div_rem(&self.width);
+        OffsetPos::new(x, y).to_pos()
     }
 }
 

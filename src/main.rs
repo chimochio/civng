@@ -40,11 +40,10 @@ struct Game {
 impl Game {
     fn moveunit(&mut self, direction: Direction) {
         let newpos = self.unitpos.neighbor(direction);
-        // Special case for impoassable startup position. We can move everywhere.
-        if !self.map.get_terrain(self.unitpos).is_passable() || self.map.get_terrain(newpos).is_passable() {
+        if self.map.get_terrain(newpos).is_passable() {
             self.unitpos = newpos;
+            self.update_details();
         }
-        self.update_details();
     }
 
     fn update_details(&mut self) {
@@ -91,10 +90,11 @@ fn handle_events(game: &mut Game) -> bool {
 
 fn main() {
     let map = load_civ5map(Path::new("resources/pangea-duel.Civ5Map"));
+    let unitpos = map.first_passable();
     let mut game = Game {
         screen: Screen::new(),
         map: map,
-        unitpos: Pos::new(0, 0, 0),
+        unitpos: unitpos,
         scrollmode: false,
     };
     game.update_details();
