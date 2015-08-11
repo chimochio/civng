@@ -21,12 +21,12 @@ extern crate civng;
 
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {
-        '8' => Some(Direction::North),
-        '9' => Some(Direction::NorthEast),
-        '3' => Some(Direction::SouthEast),
-        '2' => Some(Direction::South),
-        '1' => Some(Direction::SouthWest),
-        '7' => Some(Direction::NorthWest),
+        'w' => Some(Direction::North),
+        'e' => Some(Direction::NorthEast),
+        'd' => Some(Direction::SouthEast),
+        's' => Some(Direction::South),
+        'a' => Some(Direction::SouthWest),
+        'q' => Some(Direction::NorthWest),
         _ => None,
     }
 }
@@ -60,13 +60,13 @@ impl<'a> Game<'a> {
 fn handle_events(game: &mut Game) -> bool {
     match game.screen.term.get_event(-1) {
         Ok(Some(Event::Key(k))) => {
-            if k == 'q' {
+            if k == 'Q' {
                 return false;
             }
-            if k == 'p' {
+            if k == 'P' {
                 game.screen.toggle_option(DisplayOption::PosMarkers);
             }
-            if k == 's' {
+            if k == 'S' {
                 game.scrollmode = !game.scrollmode;
                 game.update_details();
             }

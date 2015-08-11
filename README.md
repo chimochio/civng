@@ -58,16 +58,18 @@ This changes significantly how maps look, but it shouldn't affect gameplay.
 ## Usage
 
 The app starts with the top left cell of the screen being the top left cell of the map. There's a
-`X` unit on it. You can move it with the keypad, but make sure you have numlock enabled.
+`X` unit on it. You can move it with the `w/a/s/d/q/e`.
 
 Water `~` and mountains `A` are impassable, except at the beginning because our `X` unit starts on
 water. Until the `X` unit reaches passable terrain, it can go anywhere. After that, it can't pass
 through impassable terrain.
 
-You can toggle position markers with `p`.
+You can toggle position markers with `shift-p`.
 
-You can scroll the map! To do so, press `s` to toggle scroll mode. Now, when you press numpad keys,
+You can scroll the map! To do so, press `shift-s` to toggle scroll mode. Now, when you press numpad keys,
 it's the map that will scroll instead of unit movement.
+
+`shift-q` to quit.
 
 [rust]: http://www.rust-lang.org/
 [cargo]: https://crates.io/
