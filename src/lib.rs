@@ -23,6 +23,7 @@ extern crate byteorder;
 
 pub mod hexpos;
 pub mod map;
+pub mod unit;
 pub mod screen;
 pub mod civ5map;
 

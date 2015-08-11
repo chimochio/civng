@@ -12,6 +12,7 @@ use rustty::ui::Painter;
 
 pub use civng::hexpos::{Pos, Direction};
 use civng::map::TerrainMap;
+use civng::unit::Unit;
 use civng::screen::{Screen, DisplayOption};
 use civng::civ5map::load_civ5map;
 
@@ -30,25 +31,23 @@ fn direction_for_key(key: char) -> Option<Direction> {
     }
 }
 
-struct Game {
+struct Game<'a> {
     screen: Screen,
-    map: TerrainMap,
-    unitpos: Pos,
+    map: &'a TerrainMap,
+    unit: Unit<'a>,
     scrollmode: bool, // tmp hack
 }
 
-impl Game {
+impl<'a> Game<'a> {
     fn moveunit(&mut self, direction: Direction) {
-        let newpos = self.unitpos.neighbor(direction);
-        if self.map.get_terrain(newpos).is_passable() {
-            self.unitpos = newpos;
+        if self.unit.move_(direction) {
             self.update_details();
         }
     }
 
     fn update_details(&mut self) {
         self.screen.details_window.clear(Cell::default());
-        let terrain = self.map.get_terrain(self.unitpos);
+        let terrain = self.map.get_terrain(self.unit.pos());
         self.screen.details_window.printline(2, 1, terrain.name());
         if self.scrollmode {
             self.screen.details_window.printline(2, 2, "Scroll Mode");
@@ -91,15 +90,16 @@ fn handle_events(game: &mut Game) -> bool {
 fn main() {
     let map = load_civ5map(Path::new("resources/pangea-duel.Civ5Map"));
     let unitpos = map.first_passable();
+    let unit = Unit::new(&map, unitpos);
     let mut game = Game {
         screen: Screen::new(),
-        map: map,
-        unitpos: unitpos,
+        map: &map,
+        unit: unit,
         scrollmode: false,
     };
     game.update_details();
     loop {
-        game.screen.draw(&game.map, game.unitpos);
+        game.screen.draw(&game.map, game.unit.pos());
         if !handle_events(&mut game) {
             break;
         }
