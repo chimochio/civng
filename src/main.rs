@@ -36,6 +36,7 @@ struct Game<'a> {
     map: &'a TerrainMap,
     unit: Unit<'a>,
     scrollmode: bool, // tmp hack
+    turn: u16,
 }
 
 impl<'a> Game<'a> {
@@ -46,13 +47,22 @@ impl<'a> Game<'a> {
     }
 
     fn update_details(&mut self) {
-        self.screen.details_window.clear(Cell::default());
+        let dt = &mut self.screen.details_window;
+        dt.clear(Cell::default());
         let terrain = self.map.get_terrain(self.unit.pos());
-        self.screen.details_window.printline(2, 1, terrain.name());
+        dt.printline(2, 1, terrain.name());
+        dt.printline(2, 2, &format!("Moves {}/2", self.unit.movements())[..]);
+        dt.printline(2, 3, &format!("Turn {}", self.turn)[..]);
         if self.scrollmode {
-            self.screen.details_window.printline(2, 2, "Scroll Mode");
+            dt.printline(2, 4, "Scroll Mode");
         }
-        self.screen.details_window.draw_box();
+        dt.draw_box();
+    }
+
+    fn new_turn(&mut self) {
+        self.turn += 1;
+        self.unit.refresh();
+        self.update_details()
     }
 }
 
@@ -60,27 +70,30 @@ impl<'a> Game<'a> {
 fn handle_events(game: &mut Game) -> bool {
     match game.screen.term.get_event(-1) {
         Ok(Some(Event::Key(k))) => {
-            if k == 'Q' {
-                return false;
-            }
-            if k == 'P' {
-                game.screen.toggle_option(DisplayOption::PosMarkers);
-            }
-            if k == 'S' {
-                game.scrollmode = !game.scrollmode;
-                game.update_details();
-            }
-            match direction_for_key(k) {
-                Some(d) => {
-                    if game.scrollmode {
-                        game.screen.scroll(Pos::origin().neighbor(d));
-                    }
-                    else {
-                        game.moveunit(d);
-                    }
+            match k {
+                'Q' => { return false; },
+                'P' => {
+                    game.screen.toggle_option(DisplayOption::PosMarkers);
                 },
-                None => {},
-            };
+                'S' => {
+                    game.scrollmode = !game.scrollmode;
+                    game.update_details();
+                },
+                '\r' => {
+                    game.new_turn();
+                },
+                k => match direction_for_key(k) {
+                    Some(d) => {
+                        if game.scrollmode {
+                            game.screen.scroll(Pos::origin().neighbor(d));
+                        }
+                        else {
+                            game.moveunit(d);
+                        }
+                    },
+                    None => {},
+                },
+            }
         },
         _ => { return false; },
     }
@@ -96,8 +109,9 @@ fn main() {
         map: &map,
         unit: unit,
         scrollmode: false,
+        turn: 0,
     };
-    game.update_details();
+    game.new_turn();
     loop {
         game.screen.draw(&game.map, game.unit.pos());
         if !handle_events(&mut game) {

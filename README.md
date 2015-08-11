@@ -60,6 +60,8 @@ This changes significantly how maps look, but it shouldn't affect gameplay.
 The app starts with the top left cell of the screen being the top left cell of the map. There's a
 `X` unit on it. You can move it with the `w/a/s/d/q/e`.
 
+The unit has two movements per turn. You start a new turn by pressing Return.
+
 Water `~` and mountains `A` are impassable, except at the beginning because our `X` unit starts on
 water. Until the `X` unit reaches passable terrain, it can go anywhere. After that, it can't pass
 through impassable terrain.

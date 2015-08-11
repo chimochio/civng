@@ -172,7 +172,7 @@ impl Screen {
     pub fn new() -> Screen {
         let term = Terminal::new().unwrap();
         let (cols, rows) = term.size();
-        let details_window = Window::new(cols-15, rows-4, 15, 4);
+        let details_window = Window::new(cols-15, rows-6, 15, 6);
         Screen {
             term: term,
             options: HashSet::new(),
