@@ -27,4 +27,5 @@ pub mod map;
 pub mod unit;
 pub mod screen;
 pub mod civ5map;
+pub mod game;
 

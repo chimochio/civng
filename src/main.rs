@@ -7,129 +7,19 @@
 
 use std::path::Path;
 
-use rustty::{Event, Cell, CellAccessor};
-use rustty::ui::Painter;
-
-pub use civng::hexpos::{Pos, Direction};
-use civng::unit::Unit;
-use civng::screen::{Screen, DisplayOption};
-use civng::civ5map::load_civ5map;
-use civng::map::LiveMap;
+use civng::game::Game;
 
 extern crate rustty;
 extern crate civng;
 
-fn direction_for_key(key: char) -> Option<Direction> {
-    match key {
-        'w' => Some(Direction::North),
-        'e' => Some(Direction::NorthEast),
-        'd' => Some(Direction::SouthEast),
-        's' => Some(Direction::South),
-        'a' => Some(Direction::SouthWest),
-        'q' => Some(Direction::NorthWest),
-        _ => None,
-    }
-}
-
-struct Game {
-    screen: Screen,
-    map: LiveMap,
-    scrollmode: bool, // tmp hack
-    turn: u16,
-}
-
-impl Game {
-    fn unit(&self) -> &Unit {
-        &self.map.units()[0]
-    }
-
-    fn moveunit(&mut self, direction: Direction) {
-        if self.map.moveunit(direction) {
-            self.update_details();
-        }
-    }
-
-    fn update_details(&mut self) {
-        let lines = {
-            let unit = self.unit();
-            let terrain = self.map.terrain().get_terrain(unit.pos());
-            [
-                terrain.name().to_owned(),
-                format!("Moves {}/2", unit.movements()),
-                format!("Turn {}", self.turn),
-                (if self.scrollmode { "Scroll Mode" } else { "" }).to_owned(),
-            ]
-        };
-        let dt = &mut self.screen.details_window;
-        dt.clear(Cell::default());
-        for (index, line) in lines.iter().enumerate() {
-            dt.printline(2, index+1, line);
-        }
-        dt.draw_box();
-    }
-
-    fn new_turn(&mut self) {
-        self.turn += 1;
-        self.map.refresh();
-        self.update_details()
-    }
-
-    fn draw(&mut self) {
-        let unitpos = self.unit().pos();
-        self.screen.draw(self.map.terrain(), unitpos);
-    }
-}
-
-/// Returns whether the mainloop should continue
-fn handle_events(game: &mut Game) -> bool {
-    match game.screen.term.get_event(-1) {
-        Ok(Some(Event::Key(k))) => {
-            match k {
-                'Q' => { return false; },
-                'P' => {
-                    game.screen.toggle_option(DisplayOption::PosMarkers);
-                },
-                'S' => {
-                    game.scrollmode = !game.scrollmode;
-                    game.update_details();
-                },
-                '\r' => {
-                    game.new_turn();
-                },
-                k => match direction_for_key(k) {
-                    Some(d) => {
-                        if game.scrollmode {
-                            game.screen.scroll(Pos::origin().neighbor(d));
-                        }
-                        else {
-                            game.moveunit(d);
-                        }
-                    },
-                    None => {},
-                },
-            }
-        },
-        _ => { return false; },
-    }
-    true
-}
-
 fn main() {
-    let mut game = Game {
-        screen: Screen::new(),
-        map: {
-            let terrainmap = load_civ5map(Path::new("resources/pangea-duel.Civ5Map"));
-            LiveMap::new(terrainmap)
-        },
-        scrollmode: false,
-        turn: 0,
-    };
-    let unitpos = game.map.terrain().first_passable();
-    let _ = game.map.create_unit(unitpos);
+    let mut game = Game::new(Path::new("resources/pangea-duel.Civ5Map"));
+    let unitpos = game.map().terrain().first_passable();
+    let _ = game.create_unit(unitpos);
     game.new_turn();
     loop {
         game.draw();
-        if !handle_events(&mut game) {
+        if !game.handle_events() {
             break;
         }
     }
