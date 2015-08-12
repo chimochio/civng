@@ -30,8 +30,8 @@ impl LiveMap {
         &self.units
     }
 
-    pub fn create_unit(&mut self, pos: Pos) -> &mut Unit {
-        let unit = Unit::new(pos);
+    pub fn create_unit(&mut self, name: &str, pos: Pos) -> &mut Unit {
+        let unit = Unit::new(name, pos);
         self.units.push(unit);
         let newlen = self.units.len();
         &mut self.units[newlen-1]

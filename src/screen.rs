@@ -18,6 +18,7 @@ use rustty::ui::{Window, Painter};
 
 use hexpos::{Pos, Direction};
 use terrain::{TerrainMap};
+use unit::Unit;
 
 const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
@@ -172,7 +173,7 @@ impl Screen {
     pub fn new() -> Screen {
         let term = Terminal::new().unwrap();
         let (cols, rows) = term.size();
-        let details_window = Window::new(cols-15, rows-6, 15, 6);
+        let details_window = Window::new(cols-15, rows-7, 15, 7);
         Screen {
             term: term,
             options: HashSet::new(),
@@ -253,12 +254,13 @@ impl Screen {
     }
 
     /// Draws a 'X' at specified `pos`.
-    fn drawunit(&mut self, pos: Pos) {
+    fn drawunit(&mut self, unit: &Unit) {
+        let pos = unit.pos();
         let sc = self.refcell.relative_cell(pos.translate(self.refcell.pos.neg()));
         if self.is_cell_visible(sc) {
             let (x, y) = sc.contents_screenpos(0, 1);
             match self.term.get_mut(x, y) {
-                Some(cell) => { cell.set_ch('X'); },
+                Some(cell) => { cell.set_ch(unit.map_symbol()); },
                 None => {}, // ignore
             };
         };
@@ -268,13 +270,13 @@ impl Screen {
     ///
     /// `map` is the terrain map we want to draw and `unitpos` is the position of the test unit
     /// we're moving around.
-    pub fn draw(&mut self, map: &TerrainMap, unitpos: Pos) {
+    pub fn draw(&mut self, map: &TerrainMap, unit: &Unit) {
         self.drawgrid();
         if self.has_option(DisplayOption::PosMarkers) {
             self.drawposmarkers();
         }
         self.drawterrain(map);
-        self.drawunit(unitpos);
+        self.drawunit(unit);
         self.details_window.draw_into(&mut self.term);
         let _ = self.term.swap_buffers();
     }

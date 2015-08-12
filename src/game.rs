@@ -56,8 +56,8 @@ impl Game {
         &self.map
     }
 
-    pub fn create_unit(&mut self, pos: Pos) -> &mut Unit {
-        self.map.create_unit(pos)
+    pub fn create_unit(&mut self, name: &str, pos: Pos) -> &mut Unit {
+        self.map.create_unit(name, pos)
     }
     pub fn moveunit(&mut self, direction: Direction) {
         if self.map.moveunit(direction) {
@@ -70,8 +70,9 @@ impl Game {
             let unit = self.unit();
             let terrain = self.map.terrain().get_terrain(unit.pos());
             [
-                terrain.name().to_owned(),
+                unit.name().to_owned(),
                 format!("Moves {}/2", unit.movements()),
+                terrain.name().to_owned(),
                 format!("Turn {}", self.turn),
                 (if self.scrollmode { "Scroll Mode" } else { "" }).to_owned(),
             ]
@@ -91,8 +92,9 @@ impl Game {
     }
 
     pub fn draw(&mut self) {
-        let unitpos = self.unit().pos();
-        self.screen.draw(self.map.terrain(), unitpos);
+        let screen = &mut self.screen;
+        let unit = &self.map.units()[0];
+        screen.draw(self.map.terrain(), unit);
     }
 
     /// Returns whether the mainloop should continue

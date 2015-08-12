@@ -2,13 +2,15 @@ use hexpos::{Pos, Direction};
 use terrain::TerrainMap;
 
 pub struct Unit {
+    name: String,
     pos: Pos,
     movements: u8,
 }
 
 impl Unit {
-    pub fn new(pos: Pos) -> Unit {
+    pub fn new(name: &str, pos: Pos) -> Unit {
         Unit {
+            name: name.to_owned(),
             pos: pos,
             movements: 0,
         }
@@ -20,6 +22,14 @@ impl Unit {
 
     pub fn movements(&self) -> u8 {
         self.movements
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name[..]
+    }
+
+    pub fn map_symbol(&self) -> char {
+        self.name.chars().next().unwrap()
     }
 
     pub fn move_(&mut self, direction: Direction, map: &TerrainMap) -> bool {
