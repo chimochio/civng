@@ -40,11 +40,9 @@ impl LiveMap {
     }
 
     pub fn first_passable(&self) -> Pos {
-        for (pos, terrain) in self.terrain.tiles() {
-            if terrain.is_passable() {
-                if self.units.iter().all(|u| u.pos() != pos) {
-                    return pos
-                }
+        for (pos, _) in self.terrain.tiles() {
+            if self.is_pos_passable(pos) {
+                return pos
             }
         }
         panic!("No tile is passable!");
