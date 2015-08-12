@@ -33,6 +33,7 @@ pub struct Game {
     map: LiveMap,
     scrollmode: bool, // tmp hack
     turn: u16,
+    active_unit_index: usize,
 }
 
 impl Game {
@@ -45,29 +46,24 @@ impl Game {
             },
             scrollmode: false,
             turn: 0,
+            active_unit_index: 0,
         }
     }
 
-    pub fn unit(&self) -> &Unit {
-        &self.map.units()[0]
+    fn active_unit(&self) -> &Unit {
+        &self.map.units()[self.active_unit_index]
     }
 
-    pub fn map(&self) -> &LiveMap {
-        &self.map
-    }
-
-    pub fn create_unit(&mut self, name: &str, pos: Pos) -> &mut Unit {
-        self.map.create_unit(name, pos)
-    }
-    pub fn moveunit(&mut self, direction: Direction) {
-        if self.map.moveunit(direction) {
-            self.update_details();
+    fn cycle_active_unit(&mut self) {
+        match self.map.units().iter().enumerate().skip_while(|&(_, u)| u.is_exhausted()).next() {
+            Some((i, _)) => { self.active_unit_index = i; },
+            None => {},
         }
     }
 
-    pub fn update_details(&mut self) {
+    fn update_details(&mut self) {
         let lines = {
-            let unit = self.unit();
+            let unit = self.active_unit();
             let terrain = self.map.terrain().get_terrain(unit.pos());
             [
                 unit.name().to_owned(),
@@ -85,16 +81,33 @@ impl Game {
         dt.draw_box();
     }
 
+    pub fn map(&self) -> &LiveMap {
+        &self.map
+    }
+
+    pub fn create_unit(&mut self, name: &str, pos: Pos) -> &mut Unit {
+        self.map.create_unit(name, pos)
+    }
+
+    pub fn moveunit(&mut self, direction: Direction) {
+        if self.map.moveunit(self.active_unit_index, direction) {
+            if self.active_unit().is_exhausted() {
+                self.cycle_active_unit();
+            }
+            self.update_details();
+        }
+    }
+
     pub fn new_turn(&mut self) {
         self.turn += 1;
         self.map.refresh();
+        self.cycle_active_unit();
         self.update_details()
     }
 
     pub fn draw(&mut self) {
         let screen = &mut self.screen;
-        let unit = &self.map.units()[0];
-        screen.draw(self.map.terrain(), unit);
+        screen.draw(&self.map);
     }
 
     /// Returns whether the mainloop should continue

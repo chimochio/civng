@@ -37,8 +37,8 @@ impl LiveMap {
         &mut self.units[newlen-1]
     }
 
-    pub fn moveunit(&mut self, direction: Direction) -> bool {
-        self.units[0].move_(direction, &self.terrain)
+    pub fn moveunit(&mut self, unit_id: usize, direction: Direction) -> bool {
+        self.units[unit_id].move_(direction, &self.terrain)
     }
 
     pub fn refresh(&mut self) {

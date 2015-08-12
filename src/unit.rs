@@ -32,6 +32,10 @@ impl Unit {
         self.name.chars().next().unwrap()
     }
 
+    pub fn is_exhausted(&self) -> bool {
+        self.movements == 0
+    }
+
     pub fn move_(&mut self, direction: Direction, map: &TerrainMap) -> bool {
         if self.movements == 0 {
             return false
