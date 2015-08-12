@@ -14,6 +14,7 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::io::Read;
+use std::slice::Iter;
 
 use num::integer::Integer;
 
@@ -72,6 +73,43 @@ impl Terrain {
         match *self {
             Terrain::Mountain | Terrain::Water => false,
             _ => true,
+        }
+    }
+}
+
+// You would think that it would be simpler for fn tiles() to simply return an enumerated and
+// mapped iterator rather than having this whole struct, right? Think again! There's all kinds
+// of complications when you try to do that (I spent *hours* on this), the fatal one being
+// closure lifetime. Hence, this iterator struct.
+
+pub struct TilesIterator<'a> {
+    map_width: i32,
+    counter: usize,
+    terrain_iter: Iter<'a, Terrain>,
+}
+
+impl<'a> TilesIterator<'a> {
+    pub fn new(terrain_iter: Iter<Terrain>, map_width: i32) -> TilesIterator{
+        TilesIterator {
+            map_width: map_width,
+            counter: 0,
+            terrain_iter: terrain_iter,
+        }
+    }
+}
+
+impl<'a> Iterator for TilesIterator<'a> {
+    type Item = (Pos, Terrain);
+
+    fn next(&mut self) -> Option<(Pos, Terrain)> {
+        match self.terrain_iter.next() {
+            Some(t) => {
+                let index = self.counter as i32;
+                let (y, x) = index.div_rem(&self.map_width);
+                self.counter += 1;
+                Some((OffsetPos::new(x, y).to_pos(), *t))
+            }
+            None => None,
         }
     }
 }
@@ -150,10 +188,8 @@ impl TerrainMap {
         self.data[(opos.y * self.width + opos.x) as usize]
     }
 
-    pub fn first_passable(&self) -> Pos {
-        let (index, _) = self.data.iter().enumerate().find(|&(_, &t)| t.is_passable()).unwrap();
-        let (y, x) = (index as i32).div_rem(&self.width);
-        OffsetPos::new(x, y).to_pos()
+    pub fn tiles(&self) -> TilesIterator {
+        TilesIterator::new(self.data.iter(), self.width)
     }
 }
 

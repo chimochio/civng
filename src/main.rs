@@ -14,8 +14,9 @@ extern crate civng;
 
 fn main() {
     let mut game = Game::new(Path::new("resources/pangea-duel.Civ5Map"));
-    let unitpos = game.map().terrain().first_passable();
+    let unitpos = game.map().first_passable();
     let _ = game.create_unit("Lenny", unitpos);
+    let unitpos = game.map().first_passable();
     let _ = game.create_unit("Benny", unitpos);
     game.new_turn();
     loop {
