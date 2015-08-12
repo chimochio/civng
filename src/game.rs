@@ -106,8 +106,7 @@ impl Game {
     }
 
     pub fn draw(&mut self) {
-        let screen = &mut self.screen;
-        screen.draw(&self.map);
+        self.screen.draw(&self.map, self.active_unit_index);
     }
 
     /// Returns whether the mainloop should continue

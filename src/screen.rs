@@ -13,7 +13,7 @@ use std::slice::Iter;
 use num::integer::Integer;
 
 // Re-export for doctests
-pub use rustty::{Terminal, CellAccessor, Cell, Style, Attr};
+pub use rustty::{Terminal, CellAccessor, Cell, Style, Attr, Color};
 use rustty::Pos as ScreenPos;
 use rustty::ui::{Window, Painter};
 
@@ -256,14 +256,22 @@ impl Screen {
     }
 
     /// Draws a 'X' at specified `pos`.
-    fn drawunits(&mut self, units: Iter<Unit>) {
-        for unit in units {
+    fn drawunits(&mut self, units: Iter<Unit>, active_unit_index: usize) {
+        for (index, unit) in units.enumerate() {
             let pos = unit.pos();
             let sc = self.refcell.relative_cell(pos.translate(self.refcell.pos.neg()));
             if self.is_cell_visible(sc) {
                 let (x, y) = sc.contents_screenpos(0, 1);
                 match self.term.get_mut(x, y) {
-                    Some(cell) => { cell.set_ch(unit.map_symbol()); },
+                    Some(cell) => {
+                        cell.set_ch(unit.map_symbol());
+                        if index == active_unit_index {
+                            cell.set_fg(Style::with_color(Color::Blue));
+                        }
+                        else {
+                            cell.set_fg(Style::default());
+                        }
+                    },
                     None => {}, // ignore
                 };
             };
@@ -274,13 +282,13 @@ impl Screen {
     ///
     /// `map` is the terrain map we want to draw and `unitpos` is the position of the test unit
     /// we're moving around.
-    pub fn draw(&mut self, map: &LiveMap) {
+    pub fn draw(&mut self, map: &LiveMap, active_unit_index: usize) {
         self.drawgrid();
         if self.has_option(DisplayOption::PosMarkers) {
             self.drawposmarkers();
         }
         self.drawterrain(map.terrain());
-        self.drawunits(map.units().iter());
+        self.drawunits(map.units().iter(), active_unit_index);
         self.details_window.draw_into(&mut self.term);
         let _ = self.term.swap_buffers();
     }
