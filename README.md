@@ -15,15 +15,23 @@ Very early. Features:
 
 * Text-based hexagonal tiles UI.
 * Loads ".Civ5Map" files.
-* Move around a cute `X` unit.
+* Move around Larry (`L`) and Benny (`B`).
 * Basic terrain types, with some of them impassable.
 * Map scrolling.
+* Turns, with limited movements in each one.
+* Active unit is colored.
 
 ## Requirements
 
 * [Rust][rust] 1.1
 * [Cargo][cargo]
 * A terminal using a font that supports [Unicode box-drawing characters][boxdrawing]
+
+Dependencies (automatically installed by cargo):
+
+* [Rustty][rustty] for terminal output.
+* [num][num] because native integers have very limited capabilities.
+* [byteorder][byteorder] for Civ5Map format destructuring.
 
 ## Build
 
@@ -57,23 +65,25 @@ This changes significantly how maps look, but it shouldn't affect gameplay.
 
 ## Usage
 
-The app starts with the top left cell of the screen being the top left cell of the map. There's a
-`X` unit on it. You can move it with the `w/a/s/d/q/e`.
+The app starts with the top left cell of the screen being the top left cell of the map. There are
+two units, Larry and Benny (`L` and `B`) which move in turns. You can move it with `w/a/s/d/q/e`.
 
-The unit has two movements per turn. You start a new turn by pressing Return.
+Each unit has two movements per turn. You start a new turn by pressing Return.
 
-Water `~` and mountains `A` are impassable, except at the beginning because our `X` unit starts on
-water. Until the `X` unit reaches passable terrain, it can go anywhere. After that, it can't pass
-through impassable terrain.
+Water `~` and mountains `A` are impassable.
 
-You can toggle position markers with `shift-p`.
+You can toggle position markers (mostly for debugging purposes) with `shift-p`.
 
-You can scroll the map! To do so, press `shift-s` to toggle scroll mode. Now, when you press numpad keys,
-it's the map that will scroll instead of unit movement.
+You can scroll the map! To do so, press `shift-s` to toggle scroll mode. Now, when you press
+movement keys, it's the map that will scroll instead of the active unit.
 
 `shift-q` to quit.
 
 [rust]: http://www.rust-lang.org/
 [cargo]: https://crates.io/
 [boxdrawing]: https://en.wikipedia.org/wiki/Box-drawing_character
+[rustty]: https://github.com/cpjreynolds/rustty
+[num]: https://crates.io/crates/num
+[byteorder]: https://crates.io/crates/byteorder
+
 
