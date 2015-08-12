@@ -75,6 +75,13 @@ impl Terrain {
             _ => true,
         }
     }
+
+    pub fn movement_cost(&self) -> u8 {
+        match *self {
+            Terrain::Hill => 2,
+            _ => 1,
+        }
+    }
 }
 
 // You would think that it would be simpler for fn tiles() to simply return an enumerated and
