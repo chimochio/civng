@@ -11,10 +11,10 @@ use rustty::{Event, Cell, CellAccessor};
 use rustty::ui::Painter;
 
 pub use civng::hexpos::{Pos, Direction};
-use civng::map::TerrainMap;
 use civng::unit::Unit;
 use civng::screen::{Screen, DisplayOption};
 use civng::civ5map::load_civ5map;
+use civng::map::LiveMap;
 
 extern crate rustty;
 extern crate civng;
@@ -31,38 +31,52 @@ fn direction_for_key(key: char) -> Option<Direction> {
     }
 }
 
-struct Game<'a> {
+struct Game {
     screen: Screen,
-    map: &'a TerrainMap,
-    unit: Unit<'a>,
+    map: LiveMap,
     scrollmode: bool, // tmp hack
     turn: u16,
 }
 
-impl<'a> Game<'a> {
+impl Game {
+    fn unit(&self) -> &Unit {
+        &self.map.units()[0]
+    }
+
     fn moveunit(&mut self, direction: Direction) {
-        if self.unit.move_(direction) {
+        if self.map.moveunit(direction) {
             self.update_details();
         }
     }
 
     fn update_details(&mut self) {
+        let lines = {
+            let unit = self.unit();
+            let terrain = self.map.terrain().get_terrain(unit.pos());
+            [
+                terrain.name().to_owned(),
+                format!("Moves {}/2", unit.movements()),
+                format!("Turn {}", self.turn),
+                (if self.scrollmode { "Scroll Mode" } else { "" }).to_owned(),
+            ]
+        };
         let dt = &mut self.screen.details_window;
         dt.clear(Cell::default());
-        let terrain = self.map.get_terrain(self.unit.pos());
-        dt.printline(2, 1, terrain.name());
-        dt.printline(2, 2, &format!("Moves {}/2", self.unit.movements())[..]);
-        dt.printline(2, 3, &format!("Turn {}", self.turn)[..]);
-        if self.scrollmode {
-            dt.printline(2, 4, "Scroll Mode");
+        for (index, line) in lines.iter().enumerate() {
+            dt.printline(2, index+1, line);
         }
         dt.draw_box();
     }
 
     fn new_turn(&mut self) {
         self.turn += 1;
-        self.unit.refresh();
+        self.map.refresh();
         self.update_details()
+    }
+
+    fn draw(&mut self) {
+        let unitpos = self.unit().pos();
+        self.screen.draw(self.map.terrain(), unitpos);
     }
 }
 
@@ -101,19 +115,20 @@ fn handle_events(game: &mut Game) -> bool {
 }
 
 fn main() {
-    let map = load_civ5map(Path::new("resources/pangea-duel.Civ5Map"));
-    let unitpos = map.first_passable();
-    let unit = Unit::new(&map, unitpos);
     let mut game = Game {
         screen: Screen::new(),
-        map: &map,
-        unit: unit,
+        map: {
+            let terrainmap = load_civ5map(Path::new("resources/pangea-duel.Civ5Map"));
+            LiveMap::new(terrainmap)
+        },
         scrollmode: false,
         turn: 0,
     };
+    let unitpos = game.map.terrain().first_passable();
+    let _ = game.map.create_unit(unitpos);
     game.new_turn();
     loop {
-        game.screen.draw(&game.map, game.unit.pos());
+        game.draw();
         if !handle_events(&mut game) {
             break;
         }

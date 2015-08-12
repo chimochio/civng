@@ -22,6 +22,7 @@ extern crate rustty;
 extern crate byteorder;
 
 pub mod hexpos;
+pub mod terrain;
 pub mod map;
 pub mod unit;
 pub mod screen;

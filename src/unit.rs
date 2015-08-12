@@ -1,16 +1,14 @@
 use hexpos::{Pos, Direction};
-use map::TerrainMap;
+use terrain::TerrainMap;
 
-pub struct Unit<'a> {
-    map: &'a TerrainMap,
+pub struct Unit {
     pos: Pos,
     movements: u8,
 }
 
-impl<'a> Unit<'a> {
-    pub fn new(map: &TerrainMap, pos: Pos) -> Unit {
+impl Unit {
+    pub fn new(pos: Pos) -> Unit {
         Unit {
-            map: map,
             pos: pos,
             movements: 0,
         }
@@ -24,12 +22,12 @@ impl<'a> Unit<'a> {
         self.movements
     }
 
-    pub fn move_(&mut self, direction: Direction) -> bool {
+    pub fn move_(&mut self, direction: Direction, map: &TerrainMap) -> bool {
         if self.movements == 0 {
             return false
         }
         let newpos = self.pos.neighbor(direction);
-        if self.map.get_terrain(newpos).is_passable() {
+        if map.get_terrain(newpos).is_passable() {
             self.pos = newpos;
             self.movements -= 1;
             return true

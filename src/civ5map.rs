@@ -13,7 +13,7 @@ use std::iter::FromIterator;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 
-use map::{Terrain, TerrainMap};
+use terrain::{Terrain, TerrainMap};
 
 #[allow(dead_code)]
 struct MapHeader {

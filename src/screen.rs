@@ -17,7 +17,7 @@ use rustty::Pos as ScreenPos;
 use rustty::ui::{Window, Painter};
 
 use hexpos::{Pos, Direction};
-use map::{TerrainMap};
+use terrain::{TerrainMap};
 
 const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
