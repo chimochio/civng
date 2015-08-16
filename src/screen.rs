@@ -256,7 +256,7 @@ impl Screen {
     }
 
     /// Draws a 'X' at specified `pos`.
-    fn drawunits(&mut self, units: Iter<Unit>, active_unit_index: usize) {
+    fn drawunits(&mut self, units: Iter<Unit>, active_unit_index: Option<usize>) {
         for (index, unit) in units.enumerate() {
             let pos = unit.pos();
             let sc = self.refcell.relative_cell(pos.translate(self.refcell.pos.neg()));
@@ -265,7 +265,7 @@ impl Screen {
                 match self.term.get_mut(x, y) {
                     Some(cell) => {
                         cell.set_ch(unit.map_symbol());
-                        if index == active_unit_index {
+                        if active_unit_index.is_some() && index == active_unit_index.unwrap() {
                             cell.set_fg(Style::with_color(Color::Blue));
                         }
                         else {
@@ -282,7 +282,7 @@ impl Screen {
     ///
     /// `map` is the terrain map we want to draw and `unitpos` is the position of the test unit
     /// we're moving around.
-    pub fn draw(&mut self, map: &LiveMap, active_unit_index: usize) {
+    pub fn draw(&mut self, map: &LiveMap, active_unit_index: Option<usize>) {
         self.drawgrid();
         if self.has_option(DisplayOption::PosMarkers) {
             self.drawposmarkers();

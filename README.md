@@ -68,9 +68,10 @@ This changes significantly how maps look, but it shouldn't affect gameplay.
 The app starts with the top left cell of the screen being the top left cell of the map. There are
 two units, Larry and Benny (`L` and `B`) which move in turns. You can move it with `w/a/s/d/q/e`.
 
-Each unit has two movements per turn. You start a new turn by pressing Return.
+Each unit has two movements per turn. You can cycle through active units with `.`. You start a new
+turn by pressing Return.
 
-Water `~` and mountains `A` are impassable.
+Water `~` and mountains `A` are impassable. Hills `^` use up 2 movement points.
 
 You can toggle position markers (mostly for debugging purposes) with `shift-p`.
 

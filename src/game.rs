@@ -33,7 +33,7 @@ pub struct Game {
     map: LiveMap,
     scrollmode: bool, // tmp hack
     turn: u16,
-    active_unit_index: usize,
+    active_unit_index: Option<usize>,
 }
 
 impl Game {
@@ -46,18 +46,26 @@ impl Game {
             },
             scrollmode: false,
             turn: 0,
-            active_unit_index: 0,
+            active_unit_index: None,
         }
     }
 
     fn active_unit(&self) -> &Unit {
-        &self.map.units()[self.active_unit_index]
+        &self.map.units()[self.active_unit_index.unwrap_or(0)]
     }
 
     fn cycle_active_unit(&mut self) {
-        match self.map.units().iter().enumerate().skip_while(|&(_, u)| u.is_exhausted()).next() {
-            Some((i, _)) => { self.active_unit_index = i; },
-            None => {},
+        // We want to start at the current index and cycle from there, starting back at 0 when
+        // we reach the end of the line. This is why we have this two-parts algo.
+        let active_index = match self.active_unit_index {
+            Some(active_index) => active_index,
+            None => self.map.units().len(),
+        };
+        let first_half = self.map.units().iter().enumerate().take(active_index+1);
+        let second_half = self.map.units().iter().enumerate().skip(active_index+1);
+        match second_half.chain(first_half).skip_while(|&(_, u)| u.is_exhausted()).next() {
+            Some((i, _)) => { self.active_unit_index = Some(i); },
+            None => { self.active_unit_index = None; },
         }
     }
 
@@ -90,7 +98,10 @@ impl Game {
     }
 
     pub fn moveunit(&mut self, direction: Direction) {
-        if self.map.moveunit(self.active_unit_index, direction) {
+        if self.active_unit_index.is_none() {
+            return;
+        }
+        if self.map.moveunit(self.active_unit_index.unwrap(), direction) {
             if self.active_unit().is_exhausted() {
                 self.cycle_active_unit();
             }
@@ -124,6 +135,11 @@ impl Game {
                     },
                     '\r' => {
                         self.new_turn();
+                    },
+                    '.' => {
+                        self.cycle_active_unit();
+                        self.update_details();
+                        self.draw()
                     },
                     k => match direction_for_key(k) {
                         Some(d) => {
