@@ -51,6 +51,11 @@ impl Pos {
         Pos::new(0, 0, 0)
     }
 
+    /// Returns a position of size `1` in the specified direction.
+    pub fn vector(direction: Direction) -> Pos {
+        Pos::origin().neighbor(direction)
+    }
+
     pub fn to_axialpos(&self) -> AxialPos {
         AxialPos::new(self.x, self.z)
     }

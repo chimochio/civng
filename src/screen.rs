@@ -9,6 +9,7 @@
 
 use std::collections::HashSet;
 use std::slice::Iter;
+use std::cmp::{min, max};
 
 use num::integer::Integer;
 
@@ -17,7 +18,7 @@ pub use rustty::{Terminal, CellAccessor, Cell, Style, Attr, Color};
 use rustty::Pos as ScreenPos;
 use rustty::ui::{Window, Painter};
 
-use hexpos::{Pos, Direction};
+use hexpos::{Pos, Direction, OffsetPos};
 use terrain::{TerrainMap};
 use map::LiveMap;
 use unit::Unit;
@@ -184,6 +185,12 @@ impl Screen {
         }
     }
 
+    /// Size of the terminal in number of hex cells that fits in it.
+    pub fn size_in_cells(&self) -> (usize, usize) {
+        let (cols, rows) = self.term.size();
+        (cols / CELL_WIDTH, rows / CELL_HEIGHT)
+    }
+
     pub fn has_option(&self, option:DisplayOption) -> bool {
         self.options.contains(&option)
     }
@@ -197,8 +204,24 @@ impl Screen {
         }
     }
 
+    /// Scrolls the visible part of the map by `by`.
     pub fn scroll(&mut self, by: Pos) {
         self.refcell = ScreenCell::refcell(self.refcell.pos.translate(by));
+    }
+
+    /// Scrolls visible part of the map so that `pos` is at the center of the screen.
+    pub fn center_on_pos(&mut self, pos: Pos, map: &TerrainMap) {
+        let (width, height) = self.size_in_cells();
+        let (map_width, map_height) = map.size();
+        let max_x = map_width - width as i32;
+        let max_y = map_height - height as i32;
+        let target_dx = (width / 2) as i32;
+        let target_dy = (height / 2) as i32;
+        let opos = pos.to_offset_pos();
+        let target_x = max(min(opos.x - target_dx, max_x), 0);
+        let target_y = max(min(opos.y - target_dy, max_y), 0);
+        let origin = OffsetPos::new(target_x, target_y).to_pos();
+        self.refcell = ScreenCell::refcell(origin);
     }
 
     // ">= 0" checks are useless because of usize, but it seems dangerous to leave them out. If we

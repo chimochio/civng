@@ -67,6 +67,9 @@ impl Game {
             Some((i, _)) => { self.active_unit_index = Some(i); },
             None => { self.active_unit_index = None; },
         }
+        let unitpos = self.active_unit().pos();
+        let terrainmap = self.map.terrain();
+        self.screen.center_on_pos(unitpos, terrainmap);
     }
 
     fn update_details(&mut self) {

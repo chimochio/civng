@@ -31,6 +31,7 @@ pub enum Terrain {
     Hill,
     Mountain,
     Water,
+    OutOfBounds,
 }
 
 impl Terrain {
@@ -54,6 +55,7 @@ impl Terrain {
             Terrain::Hill => '^',
             Terrain::Mountain => 'A',
             Terrain::Water => '~',
+            Terrain::OutOfBounds => '?',
         }
     }
 
@@ -65,13 +67,14 @@ impl Terrain {
             Terrain::Hill => "Hill",
             Terrain::Mountain => "Mountain",
             Terrain::Water => "Water",
+            Terrain::OutOfBounds => "Out of bounds",
         }
     }
 
     /// Returns whether the terrain is passable by our moving unit.
     pub fn is_passable(&self) -> bool {
         match *self {
-            Terrain::Mountain | Terrain::Water => false,
+            Terrain::Mountain | Terrain::Water | Terrain::OutOfBounds => false,
             _ => true,
         }
     }
@@ -183,6 +186,10 @@ impl TerrainMap {
         TerrainMap::new(width.unwrap(), height, data)
     }
 
+    pub fn size(&self) -> (i32, i32) {
+        (self.width, self.height)
+    }
+
     /// Returns terrain at a particular pos.
     ///
     /// We take care of converting `Pos` into `OffsetPos`. If out of bounds, returns Water.
@@ -190,7 +197,7 @@ impl TerrainMap {
         let opos = pos.to_offset_pos();
         if opos.x < 0 || opos.y < 0 || opos.x >= self.width || opos.y >= self.height {
             // out of bounds
-            return Terrain::Water
+            return Terrain::OutOfBounds
         }
         self.data[(opos.y * self.width + opos.x) as usize]
     }
