@@ -98,7 +98,7 @@ impl ScreenCell {
     /// let cell = ScreenCell::refcell(Pos::origin());
     /// let pos = cell.contents_screenpos(1, 3);
     /// // Prints a 'X' in the upper-center of the tile.
-    /// term[pos.astuple()].set_ch('X');
+    /// term[pos].set_ch('X');
     /// ```
     pub fn contents_screenpos(&self, dx: i8, dy: i8) -> ScreenPos {
         let (mut spx, mut spy) = self.screenpos;
@@ -205,11 +205,40 @@ impl Screen {
     }
 
     /// Scrolls the visible part of the map by `by`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use civng::screen::Screen;
+    /// use civng::hexpos::{Pos, Direction};
+    ///
+    /// let mut screen = Screen::new();
+    /// // Scrolls the screen SW by 3 cells.
+    /// screen.scroll(Pos::vector(Direction::SouthEast).amplify(3));
+    /// ```
     pub fn scroll(&mut self, by: Pos) {
         self.refcell = ScreenCell::refcell(self.refcell.pos.translate(by));
     }
 
     /// Scrolls visible part of the map so that `pos` is at the center of the screen.
+    ///
+    /// We *don't* go past `map`'s borders, so if we try to call this method with a `pos` that is
+    /// near an edge of `map`, our screen will not be exactly centered on `pos`, but we can
+    /// guarantee that it will be visible.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use civng::screen::Screen;
+    /// use civng::terrain::TerrainMap;
+    /// use civng::hexpos::{OffsetPos};
+    ///
+    /// let mut screen = Screen::new();
+    /// let map = TerrainMap::empty_map(42, 42);
+    /// let pos = OffsetPos::new(21, 21).to_pos();
+    /// // Our screen now shows the center of the terrain map
+    /// screen.center_on_pos(pos, &map);
+    /// ```
     pub fn center_on_pos(&mut self, pos: Pos, map: &TerrainMap) {
         let (width, height) = self.size_in_cells();
         let (map_width, map_height) = map.size();

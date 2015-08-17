@@ -79,6 +79,7 @@ impl Terrain {
         }
     }
 
+    /// Returns how much movement points it costs to move on that terrain.
     pub fn movement_cost(&self) -> u8 {
         match *self {
             Terrain::Hill => 2,
@@ -143,6 +144,17 @@ impl TerrainMap {
             height: height,
             data: data,
         }
+    }
+
+    /// Creates a map filled with grassland.
+    ///
+    /// Useful for testing.
+    pub fn empty_map(width: i32, height: i32) -> TerrainMap {
+        TerrainMap::new(
+            width,
+            height,
+            vec![Terrain::Grassland; (width * height) as usize],
+        )
     }
 
     /// Loads terrain map from text file.

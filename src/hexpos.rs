@@ -47,11 +47,29 @@ impl Pos {
     }
 
     /// Returns pos `(0, 0, 0)`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use civng::hexpos::Pos;
+    ///
+    /// assert_eq!(Pos::origin(), Pos::new(0, 0, 0));
+    /// ```
     pub fn origin() -> Pos {
         Pos::new(0, 0, 0)
     }
 
     /// Returns a position of size `1` in the specified direction.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use civng::hexpos::{Pos, Direction};
+    ///
+    /// let pos1 = Pos::origin().neighbor(Direction::North);
+    /// let pos2 = Pos::vector(Direction::North);
+    /// assert_eq!(pos1, pos2);
+    /// ```
     pub fn vector(direction: Direction) -> Pos {
         Pos::origin().neighbor(direction)
     }
