@@ -11,7 +11,7 @@ use rustty::{Event, Cell, CellAccessor};
 use rustty::ui::Painter;
 
 use hexpos::{Pos, Direction};
-use unit::Unit;
+use unit::{Unit, Player};
 use screen::{Screen, DisplayOption};
 use civ5map::load_civ5map;
 use map::LiveMap;
@@ -61,8 +61,9 @@ impl Game {
             Some(active_index) => active_index,
             None => self.map.units().len(),
         };
-        let first_half = self.map.units().iter().enumerate().take(active_index+1);
-        let second_half = self.map.units().iter().enumerate().skip(active_index+1);
+        fn f(u: &&Unit) -> bool {u.owner() == Player::Me}
+        let first_half = self.map.units().iter().filter(f).enumerate().take(active_index+1);
+        let second_half = self.map.units().iter().filter(f).enumerate().skip(active_index+1);
         match second_half.chain(first_half).skip_while(|&(_, u)| u.is_exhausted()).next() {
             Some((i, _)) => { self.active_unit_index = Some(i); },
             None => { self.active_unit_index = None; },
@@ -96,8 +97,8 @@ impl Game {
         &self.map
     }
 
-    pub fn create_unit(&mut self, name: &str, pos: Pos) -> &mut Unit {
-        self.map.create_unit(name, pos)
+    pub fn add_unit(&mut self, unit: Unit) -> &mut Unit {
+        self.map.add_unit(unit)
     }
 
     pub fn moveunit(&mut self, direction: Direction) {

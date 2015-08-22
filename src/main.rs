@@ -8,16 +8,20 @@
 use std::path::Path;
 
 use civng::game::Game;
+use civng::unit::{Unit, Player};
+use civng::hexpos::{Pos, OffsetPos};
 
 extern crate rustty;
 extern crate civng;
 
 fn main() {
     let mut game = Game::new(Path::new("resources/pangea-duel.Civ5Map"));
-    let unitpos = game.map().first_passable();
-    let _ = game.create_unit("Lenny", unitpos);
-    let unitpos = game.map().first_passable();
-    let _ = game.create_unit("Benny", unitpos);
+    let unitpos = game.map().first_passable(Pos::origin());
+    let _ = game.add_unit(Unit::new("Lenny", Player::Me, unitpos));
+    let unitpos = game.map().first_passable(Pos::origin());
+    let _ = game.add_unit(Unit::new("Benny", Player::Me, unitpos));
+    let unitpos = game.map().first_passable(OffsetPos::new(12, 12).to_pos());
+    let _ = game.add_unit(Unit::new("Evil Man", Player::NotMe, unitpos));
     game.new_turn();
     loop {
         game.draw();

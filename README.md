@@ -16,6 +16,7 @@ Very early. Features:
 * Text-based hexagonal tiles UI.
 * Loads ".Civ5Map" files.
 * Move around Larry (`L`) and Benny (`B`).
+* Meet Evil Man (`E`), an enemy unit shown in red somewhere on the map!
 * Basic terrain types, with some of them impassable.
 * Map scrolling.
 * Turns, with limited movements in each one.

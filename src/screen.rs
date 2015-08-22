@@ -21,7 +21,7 @@ use rustty::ui::{Window, Painter};
 use hexpos::{Pos, Direction, OffsetPos};
 use terrain::{TerrainMap};
 use map::LiveMap;
-use unit::Unit;
+use unit::{Unit, Player};
 
 const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
@@ -317,12 +317,16 @@ impl Screen {
                 match self.term.get_mut(x, y) {
                     Some(cell) => {
                         cell.set_ch(unit.map_symbol());
-                        if active_unit_index.is_some() && index == active_unit_index.unwrap() {
-                            cell.set_fg(Style::with_color(Color::Blue));
-                        }
-                        else {
-                            cell.set_fg(Style::default());
-                        }
+                        let style = if unit.owner() != Player::Me {
+                                Style::with_color(Color::Red)
+                            }
+                            else if active_unit_index.is_some() && index == active_unit_index.unwrap() {
+                                Style::with_color(Color::Blue)
+                            }
+                            else {
+                                Style::default()
+                            };
+                        cell.set_fg(style);
                     },
                     None => {}, // ignore
                 };

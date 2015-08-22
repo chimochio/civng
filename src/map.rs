@@ -39,8 +39,23 @@ impl LiveMap {
         }
     }
 
-    pub fn first_passable(&self) -> Pos {
-        for (pos, _) in self.terrain.tiles() {
+    /// Returns the first passable tile after `from`.
+    ///
+    /// Iterates all tiles from left to right, from the position `pos`. As soon as a tile is
+    /// passable (terrain-wise and unit-wise), we return its position.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use civng::terrain::TerrainMap;
+    /// use civng::map::LiveMap;
+    /// use civng::hexpos::Pos;
+    ///
+    /// let map = LiveMap::new(TerrainMap::empty_map(2, 2));
+    /// assert_eq!(map.first_passable(Pos::origin()), Pos::origin());
+    /// ```
+    pub fn first_passable(&self, from: Pos) -> Pos {
+        for (pos, _) in self.terrain.tiles().skip_while(|&(p, _)| p != from) {
             if self.is_pos_passable(pos) {
                 return pos
             }
@@ -48,8 +63,7 @@ impl LiveMap {
         panic!("No tile is passable!");
     }
 
-    pub fn create_unit(&mut self, name: &str, pos: Pos) -> &mut Unit {
-        let unit = Unit::new(name, pos);
+    pub fn add_unit(&mut self, unit: Unit) -> &mut Unit {
         self.units.push(unit);
         let newlen = self.units.len();
         &mut self.units[newlen-1]

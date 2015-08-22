@@ -10,6 +10,12 @@
 use hexpos::{Pos, Direction};
 use terrain::Terrain;
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum Player {
+    Me,
+    NotMe,
+}
+
 /// A unit on a map.
 pub struct Unit {
     /// Name of the unit
@@ -18,14 +24,17 @@ pub struct Unit {
     pos: Pos,
     /// Movement points left this turn
     movements: u8,
+    /// Player the unit belongs to
+    owner: Player,
 }
 
 impl Unit {
-    pub fn new(name: &str, pos: Pos) -> Unit {
+    pub fn new(name: &str, owner: Player, pos: Pos) -> Unit {
         Unit {
             name: name.to_owned(),
             pos: pos,
             movements: 0,
+            owner: owner,
         }
     }
 
@@ -41,6 +50,11 @@ impl Unit {
         &self.name[..]
     }
 
+    pub fn owner(&self) -> Player {
+        self.owner
+    }
+
+
     /// One letter symbol to represent the unit with on the map.
     ///
     /// For now, it's the first letter of the name.
@@ -48,10 +62,10 @@ impl Unit {
     /// # Examples
     ///
     /// ```
-    /// use civng::unit::Unit;
+    /// use civng::unit::{Unit, Player};
     /// use civng::hexpos::Pos;
     ///
-    /// assert_eq!(Unit::new("Vincent", Pos::origin()).map_symbol(), 'V');
+    /// assert_eq!(Unit::new("Vincent", Player::Me, Pos::origin()).map_symbol(), 'V');
     /// ```
     pub fn map_symbol(&self) -> char {
         self.name.chars().next().unwrap()
@@ -73,11 +87,11 @@ impl Unit {
     /// # Examples
     ///
     /// ```
-    /// use civng::unit::Unit;
+    /// use civng::unit::{Unit, Player};
     /// use civng::hexpos::{Pos, Direction};
     /// use civng::terrain::Terrain;
     ///
-    /// let mut unit = Unit::new("Jules", Pos::origin());
+    /// let mut unit = Unit::new("Jules", Player::Me, Pos::origin());
     /// unit.refresh();
     /// // We move alright!
     /// assert!(unit.move_(Direction::South, Terrain::Grassland));
