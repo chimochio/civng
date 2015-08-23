@@ -11,7 +11,7 @@ use rustty::{Event, Cell, CellAccessor};
 use rustty::ui::Painter;
 
 use hexpos::{Pos, Direction};
-use unit::{Unit, Player};
+use unit::Unit;
 use screen::{Screen, DisplayOption};
 use civ5map::load_civ5map;
 use map::LiveMap;
@@ -51,23 +51,15 @@ impl Game {
     }
 
     fn active_unit(&self) -> &Unit {
-        &self.map.units()[self.active_unit_index.unwrap_or(0)]
+        &self.map.units().get(self.active_unit_index.unwrap_or(0))
     }
 
     fn cycle_active_unit(&mut self) {
-        // We want to start at the current index and cycle from there, starting back at 0 when
-        // we reach the end of the line. This is why we have this two-parts algo.
         let active_index = match self.active_unit_index {
             Some(active_index) => active_index,
-            None => self.map.units().len(),
+            None => self.map.units().max_id() + 1,
         };
-        fn f(u: &&Unit) -> bool {u.owner() == Player::Me}
-        let first_half = self.map.units().iter().filter(f).enumerate().take(active_index+1);
-        let second_half = self.map.units().iter().filter(f).enumerate().skip(active_index+1);
-        match second_half.chain(first_half).skip_while(|&(_, u)| u.is_exhausted()).next() {
-            Some((i, _)) => { self.active_unit_index = Some(i); },
-            None => { self.active_unit_index = None; },
-        }
+        self.active_unit_index = self.map.units().next_active_unit(active_index);
         let unitpos = self.active_unit().pos();
         let terrainmap = self.map.terrain();
         self.screen.center_on_pos(unitpos, terrainmap);
@@ -79,7 +71,7 @@ impl Game {
             let terrain = self.map.terrain().get_terrain(unit.pos());
             [
                 unit.name().to_owned(),
-                format!("Moves {}/2", unit.movements()),
+                format!("MV {} / HP {}", unit.movements(), unit.hp()),
                 terrain.name().to_owned(),
                 format!("Turn {}", self.turn),
                 (if self.scrollmode { "Scroll Mode" } else { "" }).to_owned(),
@@ -105,12 +97,11 @@ impl Game {
         if self.active_unit_index.is_none() {
             return;
         }
-        if self.map.moveunit(self.active_unit_index.unwrap(), direction) {
-            if self.active_unit().is_exhausted() {
-                self.cycle_active_unit();
-            }
-            self.update_details();
+        self.map.moveunit(self.active_unit_index.unwrap(), direction);
+        if self.active_unit().is_exhausted() {
+            self.cycle_active_unit();
         }
+        self.update_details();
     }
 
     pub fn new_turn(&mut self) {

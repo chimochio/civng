@@ -20,11 +20,13 @@
 extern crate num;
 extern crate rustty;
 extern crate byteorder;
+extern crate rand;
 
 pub mod hexpos;
 pub mod terrain;
 pub mod map;
 pub mod unit;
+pub mod combat;
 pub mod screen;
 pub mod civ5map;
 pub mod game;

@@ -8,7 +8,6 @@
 //! Represent hex cells *in the context of a terminal UI*.
 
 use std::collections::HashSet;
-use std::slice::Iter;
 use std::cmp::{min, max};
 
 use num::integer::Integer;
@@ -21,7 +20,7 @@ use rustty::ui::{Window, Painter};
 use hexpos::{Pos, Direction, OffsetPos};
 use terrain::{TerrainMap};
 use map::LiveMap;
-use unit::{Unit, Player};
+use unit::{Units, Player};
 
 const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
@@ -176,7 +175,7 @@ impl Screen {
     pub fn new() -> Screen {
         let term = Terminal::new().unwrap();
         let (cols, rows) = term.size();
-        let details_window = Window::new(cols-15, rows-7, 15, 7);
+        let details_window = Window::new(cols-16, rows-7, 16, 7);
         Screen {
             term: term,
             options: HashSet::new(),
@@ -308,8 +307,8 @@ impl Screen {
     }
 
     /// Draws a 'X' at specified `pos`.
-    fn drawunits(&mut self, units: Iter<Unit>, active_unit_index: Option<usize>) {
-        for (index, unit) in units.enumerate() {
+    fn drawunits(&mut self, units: &Units, active_unit_index: Option<usize>) {
+        for unit in units.all_units() {
             let pos = unit.pos();
             let sc = self.refcell.relative_cell(pos.translate(self.refcell.pos.neg()));
             if self.is_cell_visible(sc) {
@@ -320,7 +319,7 @@ impl Screen {
                         let style = if unit.owner() != Player::Me {
                                 Style::with_color(Color::Red)
                             }
-                            else if active_unit_index.is_some() && index == active_unit_index.unwrap() {
+                            else if active_unit_index.is_some() && unit.id() == active_unit_index.unwrap() {
                                 Style::with_color(Color::Blue)
                             }
                             else {
@@ -344,7 +343,7 @@ impl Screen {
             self.drawposmarkers();
         }
         self.drawterrain(map.terrain());
-        self.drawunits(map.units().iter(), active_unit_index);
+        self.drawunits(map.units(), active_unit_index);
         self.details_window.draw_into(&mut self.term);
         let _ = self.term.swap_buffers();
     }

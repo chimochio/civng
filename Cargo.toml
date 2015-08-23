@@ -11,6 +11,7 @@ doc = false
 [dependencies]
 num = "*"
 byteorder = "*"
+rand = "*"
 
 [dependencies.rustty]
 git = "https://github.com/hsoft/rustty.git"

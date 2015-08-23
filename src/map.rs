@@ -6,19 +6,19 @@
  */
 
 use hexpos::{Pos, Direction};
-use unit::Unit;
+use unit::{Unit, Units, Player};
 use terrain::TerrainMap;
 
 pub struct LiveMap {
     terrain: TerrainMap,
-    units: Vec<Unit>,
+    units: Units,
 }
 
 impl LiveMap {
     pub fn new(terrain: TerrainMap) -> LiveMap {
         LiveMap {
             terrain: terrain,
-            units: Vec::new(),
+            units: Units::new(),
         }
     }
 
@@ -26,7 +26,7 @@ impl LiveMap {
         &self.terrain
     }
 
-    pub fn units(&self) -> &Vec<Unit> {
+    pub fn units(&self) -> &Units {
         &self.units
     }
 
@@ -35,7 +35,7 @@ impl LiveMap {
             false
         }
         else {
-            self.units.iter().all(|u| u.pos() != pos)
+            self.units.unit_at_pos(pos) == None
         }
     }
 
@@ -64,29 +64,31 @@ impl LiveMap {
     }
 
     pub fn add_unit(&mut self, unit: Unit) -> &mut Unit {
-        self.units.push(unit);
-        let newlen = self.units.len();
-        &mut self.units[newlen-1]
+        self.units.add_unit(unit)
     }
 
     pub fn moveunit(&mut self, unit_id: usize, direction: Direction) -> bool {
-        let newpos = {
-            let unit = &self.units[unit_id];
-            let newpos = unit.pos().neighbor(direction);
-            if !self.is_pos_passable(newpos) {
-                return false
+        let newpos = self.units.get(unit_id).pos().neighbor(direction);
+        if !self.terrain.get_terrain(newpos).is_passable() {
+            return false;
+        }
+        match self.units.unit_at_pos(newpos) {
+            Some(uid) => {
+                if self.units.get(uid).owner() == Player::Me {
+                    return false
+                }
+                self.units.attack(unit_id, uid);
+                return false;
             }
-            newpos
-        };
-        let unit = &mut self.units[unit_id];
+            None => (),
+        }
+        let unit = self.units.get_mut(unit_id);
         let terrain = self.terrain.get_terrain(newpos);
         unit.move_(direction, terrain)
     }
 
     pub fn refresh(&mut self) {
-        for unit in self.units.iter_mut() {
-            unit.refresh();
-        }
+        self.units.refresh();
     }
 }
 

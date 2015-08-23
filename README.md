@@ -16,7 +16,7 @@ Very early. Features:
 * Text-based hexagonal tiles UI.
 * Loads ".Civ5Map" files.
 * Move around Larry (`L`) and Benny (`B`).
-* Meet Evil Man (`E`), an enemy unit shown in red somewhere on the map!
+* Combat! Meet Evil Man (`E`), an enemy unit shown in red somewhere on the map and fight him!
 * Basic terrain types, with some of them impassable.
 * Map scrolling.
 * Turns, with limited movements in each one.
@@ -71,6 +71,9 @@ two units, Larry and Benny (`L` and `B`) which move in turns. You can move it wi
 
 Each unit has two movements per turn. You can cycle through active units with `.`. You start a new
 turn by pressing Return.
+
+If you move on a tile with an enemy unit on it, you initiate a melee attack automatically. If you
+win, you move on the enemy's tile.
 
 Water `~` and mountains `A` are impassable. Hills `^` use up 2 movement points.
 
