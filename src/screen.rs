@@ -15,7 +15,7 @@ use num::integer::Integer;
 // Re-export for doctests
 pub use rustty::{Terminal, CellAccessor, Cell, Style, Attr, Color};
 use rustty::Pos as ScreenPos;
-use rustty::ui::{Window, Painter};
+use rustty::ui::{Window, Painter, HorizontalAlign, VerticalAlign};
 
 use hexpos::{Pos, Direction, OffsetPos};
 use terrain::{TerrainMap};
@@ -174,8 +174,8 @@ pub struct Screen {
 impl Screen {
     pub fn new() -> Screen {
         let term = Terminal::new().unwrap();
-        let (cols, rows) = term.size();
-        let details_window = Window::new(cols-16, rows-7, 16, 7);
+        let mut details_window = Window::new(16, 7);
+        details_window.align(&term, HorizontalAlign::Right, VerticalAlign::Bottom);
         Screen {
             term: term,
             options: HashSet::new(),
