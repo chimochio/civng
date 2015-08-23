@@ -7,8 +7,7 @@
 
 use std::path::Path;
 
-use rustty::{Event, Cell, CellAccessor};
-use rustty::ui::Painter;
+use rustty::{Event, CellAccessor};
 
 use hexpos::{Pos, Direction};
 use unit::Unit;
@@ -66,23 +65,7 @@ impl Game {
     }
 
     fn update_details(&mut self) {
-        let lines = {
-            let unit = self.active_unit();
-            let terrain = self.map.terrain().get_terrain(unit.pos());
-            [
-                unit.name().to_owned(),
-                format!("MV {} / HP {}", unit.movements(), unit.hp()),
-                terrain.name().to_owned(),
-                format!("Turn {}", self.turn),
-                (if self.scrollmode { "Scroll Mode" } else { "" }).to_owned(),
-            ]
-        };
-        let dt = &mut self.screen.details_window;
-        dt.clear(Cell::default());
-        for (index, line) in lines.iter().enumerate() {
-            dt.printline(2, index+1, line);
-        }
-        dt.draw_box();
+        self.screen.details_window.update(self.active_unit_index, &self.map, self.turn, self.scrollmode);
     }
 
     pub fn map(&self) -> &LiveMap {
