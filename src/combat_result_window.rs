@@ -17,7 +17,7 @@ pub struct CombatResultWindow {
 
 impl CombatResultWindow {
     pub fn new() -> CombatResultWindow {
-        let window = Window::new(35, 10);
+        let window = Window::new(35, 12);
         CombatResultWindow {
             window: window,
         }
@@ -43,6 +43,17 @@ impl CombatResultWindow {
         };
         let x = self.window.halign_line(result_desc, HorizontalAlign::Middle, 1);
         self.window.printline(x, 1, result_desc);
+        let lines = [
+            format!("Attacker: {}", result.attacker_name),
+            format!("Dmg received: {}", result.dmg_to_attacker),
+            format!("Remaining HP: {}", result.attacker_remaining_hp()),
+            format!("Defender: {}", result.defender_name),
+            format!("Dmg received: {}", result.dmg_to_defender),
+            format!("Remaining HP: {}", result.defender_remaining_hp()),
+        ];
+        for (i, s) in lines.iter().enumerate() {
+            self.window.printline(2, 3+i, &s[..]);
+        }
         let s = "Press any key to continue";
         let x = self.window.halign_line(s, HorizontalAlign::Middle, 1);
         let y = self.window.valign_line(s, VerticalAlign::Bottom, 1);
