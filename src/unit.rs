@@ -184,14 +184,15 @@ impl Units {
         result
     }
 
-    pub fn attack(&mut self, from_id: usize, to_id: usize) {
-        let (from_hp, to_hp) = combat::attack(&self.units[from_id], &self.units[to_id]);
-        (&mut self.units[from_id]).hp = from_hp;
+    pub fn attack(&mut self, from_id: usize, to_id: usize) -> combat::CombatResult {
+        let result = combat::attack(&self.units[from_id], &self.units[to_id]);
+        (&mut self.units[from_id]).hp = result.attacker_remaining_hp();
         (&mut self.units[from_id]).movements = 0;
-        (&mut self.units[to_id]).hp = to_hp;
-        if to_hp == 0 {
+        (&mut self.units[to_id]).hp = result.defender_remaining_hp();
+        if result.defender_remaining_hp() == 0 {
             (&mut self.units[from_id]).pos = (&mut self.units[to_id]).pos;
         }
+        result
     }
 
     pub fn max_id(&self) -> usize {

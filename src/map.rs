@@ -8,6 +8,7 @@
 use hexpos::{Pos, Direction};
 use unit::{Unit, Units, Player};
 use terrain::TerrainMap;
+use combat::CombatResult;
 
 pub struct LiveMap {
     terrain: TerrainMap,
@@ -67,24 +68,25 @@ impl LiveMap {
         self.units.add_unit(unit)
     }
 
-    pub fn moveunit(&mut self, unit_id: usize, direction: Direction) -> bool {
+    pub fn moveunit(&mut self, unit_id: usize, direction: Direction) -> Option<CombatResult> {
         let newpos = self.units.get(unit_id).pos().neighbor(direction);
         if !self.terrain.get_terrain(newpos).is_passable() {
-            return false;
+            return None;
         }
         match self.units.unit_at_pos(newpos) {
             Some(uid) => {
                 if self.units.get(uid).owner() == Player::Me {
-                    return false
+                    return None
                 }
-                self.units.attack(unit_id, uid);
-                return false;
+                let combat_result = self.units.attack(unit_id, uid);
+                return Some(combat_result);
             }
             None => (),
         }
         let unit = self.units.get_mut(unit_id);
         let terrain = self.terrain.get_terrain(newpos);
-        unit.move_(direction, terrain)
+        unit.move_(direction, terrain);
+        None
     }
 
     pub fn refresh(&mut self) {

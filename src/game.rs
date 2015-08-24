@@ -14,6 +14,8 @@ use unit::Unit;
 use screen::{Screen, DisplayOption};
 use civ5map::load_civ5map;
 use map::LiveMap;
+use combat::CombatResult;
+use combat_result_window::CombatResultWindow;
 
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {
@@ -76,15 +78,16 @@ impl Game {
         self.map.add_unit(unit)
     }
 
-    pub fn moveunit(&mut self, direction: Direction) {
+    pub fn moveunit(&mut self, direction: Direction) -> Option<CombatResult> {
         if self.active_unit_index.is_none() {
-            return;
+            return None;
         }
-        self.map.moveunit(self.active_unit_index.unwrap(), direction);
+        let result = self.map.moveunit(self.active_unit_index.unwrap(), direction);
         if self.active_unit().is_exhausted() {
             self.cycle_active_unit();
         }
         self.update_details();
+        result
     }
 
     pub fn new_turn(&mut self) {
@@ -102,6 +105,10 @@ impl Game {
     pub fn handle_events(&mut self) -> bool {
         match self.screen.term.get_event(-1) {
             Ok(Some(Event::Key(k))) => {
+                if self.screen.popup_dialog.is_some() {
+                    self.screen.popup_dialog = None;
+                    return true;
+                }
                 match k {
                     'Q' => { return false; },
                     'P' => {
@@ -125,7 +132,14 @@ impl Game {
                                 self.screen.scroll(Pos::origin().neighbor(d));
                             }
                             else {
-                                self.moveunit(d);
+                                match self.moveunit(d) {
+                                    Some(ref combat_result) => {
+                                        let mut combat_result_dialog = CombatResultWindow::new();
+                                        combat_result_dialog.update(combat_result);
+                                        self.screen.popup_dialog = Some(Box::new(combat_result_dialog));
+                                    }
+                                    None => (),
+                                }
                             }
                         },
                         None => {},
