@@ -55,42 +55,47 @@ impl CombatResult {
     }
 }
 
-/// Make `from` attack `to` and returns a CombatResult.
-///
-/// An attack *never* result in both units being dead.
-pub fn attack(from: &Unit, to: &Unit) -> CombatResult {
+fn compute_dmg(source: &Unit, target: &Unit) -> u8 {
     let mut rng = rand::thread_rng();
-    let defender_is_weak = from.strength() > to.strength();
-    let (strong, weak) = if defender_is_weak { (from, to) } else { (to, from) };
+    let target_is_weak = source.strength() > target.strength();
+    let (strong, weak) = if target_is_weak { (source, target) } else { (target, source) };
     let r = strong.strength() as f32 / weak.strength() as f32;
-    let m = 0.5 + num::pow(r+3.0, 4) / 512.0;
+    let mut m = 0.5 + num::pow(r+3.0, 4) / 512.0;
+    if !target_is_weak {
+        m = 1.0 / m;
+    }
     const BASE_MIN: f32 = 40.0;
     const BASE_SPREAD: f32 = 30.0;
-    let weak_min = BASE_MIN * m;
-    let weak_spread = BASE_SPREAD * m;
-    let weak_rnd = Range::new(0.0, weak_spread).ind_sample(&mut rng);
-    let mut dmg_to_weak = max((weak_min + weak_rnd).floor() as i32, 1);
-    let strong_min = BASE_MIN / m;
-    let strong_spread = BASE_SPREAD / m;
-    let strong_rnd = Range::new(0.0, strong_spread).ind_sample(&mut rng);
-    let mut dmg_to_strong = max((strong_min + strong_rnd).floor() as i32, 1);
-    let weak_hp = weak.hp() as i32 - dmg_to_weak;
-    let strong_hp = strong.hp() as i32  - dmg_to_strong;
-    if weak_hp < 0 && strong_hp < 0 {
+    let min = BASE_MIN * m;
+    let spread = BASE_SPREAD * m;
+    let rnd = Range::new(0.0, spread).ind_sample(&mut rng);
+    let mut dmg_dealt = (min + rnd).floor();
+    dmg_dealt = apply_penalty_for_damaged_unit(dmg_dealt, source.hp());
+    max(dmg_dealt.floor() as i16, 1) as u8
+}
+
+fn apply_penalty_for_damaged_unit(dealt_dmg: f32, dealer_hp: u8) -> f32 {
+    let penalty = ((100 - dealer_hp) / 20) as f32 * 0.1;
+    dealt_dmg - (dealt_dmg * penalty)
+}
+
+/// Make `source` attack `target` and returns a CombatResult.
+///
+/// An attack *never* result in both units being dead.
+pub fn attack(source: &Unit, target: &Unit) -> CombatResult {
+    let mut dmg_to_target = compute_dmg(source, target);
+    let mut dmg_to_source = compute_dmg(target, source);
+    let target_hp = target.hp() as i16 - dmg_to_target as i16;
+    let source_hp = source.hp() as i16 - dmg_to_source as i16;
+    if target_hp < 0 && source_hp < 0 {
         // Only one unit can die. Revive the "less dead" one.
-        if weak_hp > strong_hp {
-            dmg_to_weak = weak.hp() as i32 - 1
+        if source_hp > target_hp {
+            dmg_to_target = target.hp() - 1
         }
         else {
-            dmg_to_strong = strong.hp() as i32 - 1
+            dmg_to_source = source.hp() - 1
         }
     }
-    let (dmg_to_from, dmg_to_to) = if defender_is_weak {
-        (dmg_to_strong as u8, dmg_to_weak as u8)
-    }
-    else {
-        (dmg_to_weak as u8, dmg_to_strong as u8)
-    };
-    CombatResult::new(from, to, dmg_to_from, dmg_to_to)
+    CombatResult::new(source, target, dmg_to_source, dmg_to_target)
 }
 
