@@ -20,7 +20,7 @@ fn main() {
     let _ = game.add_unit(Unit::new("Lenny", Player::Me, unitpos));
     let unitpos = game.map().first_passable(Pos::origin());
     let _ = game.add_unit(Unit::new("Benny", Player::Me, unitpos));
-    let unitpos = game.map().first_passable(OffsetPos::new(12, 12).to_pos());
+    let unitpos = game.map().first_passable(OffsetPos::new(4, 4).to_pos());
     let _ = game.add_unit(Unit::new("Evil Man", Player::NotMe, unitpos));
     game.new_turn();
     loop {

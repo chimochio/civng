@@ -6,18 +6,18 @@
  */
 
 use rustty::{CellAccessor, Cell};
-use rustty::ui::{Painter, Window, HorizontalAlign, VerticalAlign};
+use rustty::ui::{Painter, Widget, DrawArea, HorizontalAlign, VerticalAlign, create_button};
 
 use dialog::Dialog;
 use combat::CombatResult;
 
 pub struct CombatResultWindow {
-    window: Window,
+    window: Widget,
 }
 
 impl CombatResultWindow {
     pub fn new() -> CombatResultWindow {
-        let window = Window::new(35, 12);
+        let window = Widget::new(35, 12);
         CombatResultWindow {
             window: window,
         }
@@ -54,19 +54,19 @@ impl CombatResultWindow {
         for (i, s) in lines.iter().enumerate() {
             self.window.printline(2, 3+i, &s[..]);
         }
-        let s = "Press any key to continue";
-        let x = self.window.halign_line(s, HorizontalAlign::Middle, 1);
-        let y = self.window.valign_line(s, VerticalAlign::Bottom, 1);
-        self.window.printline(x, y, s);
+        let mut b = create_button("Ok", Some('o'));
+        b.valign(&self.window, VerticalAlign::Bottom, 1);
+        b.halign(&self.window, HorizontalAlign::Middle, 1);
+        b.draw_into(&mut self.window);
         self.window.draw_box();
     }
 }
 
 impl Dialog for CombatResultWindow {
-    fn window(&self) -> &Window {
+    fn window(&self) -> &Widget {
         &self.window
     }
-    fn window_mut(&mut self) -> &mut Window {
+    fn window_mut(&mut self) -> &mut Widget {
         &mut self.window
     }
 }

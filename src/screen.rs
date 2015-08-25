@@ -15,7 +15,7 @@ use num::integer::Integer;
 // Re-export for doctests
 pub use rustty::{Terminal, CellAccessor, Cell, Style, Attr, Color};
 use rustty::Pos as ScreenPos;
-use rustty::ui::{Painter, HorizontalAlign, VerticalAlign};
+use rustty::ui::{Painter, DrawArea, HorizontalAlign, VerticalAlign};
 
 use hexpos::{Pos, Direction, OffsetPos};
 use terrain::{TerrainMap};
@@ -351,7 +351,7 @@ impl Screen {
         match self.popup_dialog {
             Some(ref mut d) => {
                 let w = d.window_mut();
-                w.align(&self.term, HorizontalAlign::Middle, VerticalAlign::Middle);
+                w.align(&self.term, HorizontalAlign::Middle, VerticalAlign::Middle, 0);
                 w.draw_into(&mut self.term);
             }
             None => (),

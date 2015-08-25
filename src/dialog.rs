@@ -5,10 +5,10 @@
  * http://www.gnu.org/licenses/gpl-3.0.html
  */
 
-use rustty::ui::Window;
+use rustty::ui::Widget;
 
 pub trait Dialog {
-    fn window(&self) -> &Window;
-    fn window_mut(&mut self) -> &mut Window;
+    fn window(&self) -> &Widget;
+    fn window_mut(&mut self) -> &mut Widget;
 }
 

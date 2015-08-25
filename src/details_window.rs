@@ -6,18 +6,18 @@
  */
 
 use rustty::{CellAccessor, Cell};
-use rustty::ui::{Painter, Window, HorizontalAlign, VerticalAlign};
+use rustty::ui::{Painter, Widget, DrawArea, HorizontalAlign, VerticalAlign};
 
 use map::LiveMap;
 
 pub struct DetailsWindow {
-    window: Window,
+    window: Widget,
 }
 
 impl DetailsWindow {
     pub fn new(parent: &CellAccessor) -> DetailsWindow {
-        let mut window = Window::new(16, 7);
-        window.align(parent, HorizontalAlign::Right, VerticalAlign::Bottom);
+        let mut window = Widget::new(16, 7);
+        window.align(parent, HorizontalAlign::Right, VerticalAlign::Bottom, 0);
         DetailsWindow {
             window: window,
         }
