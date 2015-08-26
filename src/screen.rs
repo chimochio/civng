@@ -13,9 +13,9 @@ use std::cmp::{min, max};
 use num::integer::Integer;
 
 // Re-export for doctests
-pub use rustty::{Terminal, CellAccessor, Cell, Style, Attr, Color};
+pub use rustty::{Terminal, CellAccessor, HasSize, Cell, Style, Attr, Color};
 use rustty::Pos as ScreenPos;
-use rustty::ui::{Painter, DrawArea, HorizontalAlign, VerticalAlign};
+use rustty::ui::{Painter, Alignable, HorizontalAlign, VerticalAlign};
 
 use hexpos::{Pos, Direction, OffsetPos};
 use terrain::{TerrainMap};

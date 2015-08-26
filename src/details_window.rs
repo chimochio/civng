@@ -5,8 +5,8 @@
  * http://www.gnu.org/licenses/gpl-3.0.html
  */
 
-use rustty::{CellAccessor, Cell};
-use rustty::ui::{Painter, Widget, DrawArea, HorizontalAlign, VerticalAlign};
+use rustty::{CellAccessor, Cell, HasSize};
+use rustty::ui::{Painter, Widget, Alignable, HorizontalAlign, VerticalAlign};
 
 use map::LiveMap;
 
@@ -15,7 +15,7 @@ pub struct DetailsWindow {
 }
 
 impl DetailsWindow {
-    pub fn new(parent: &CellAccessor) -> DetailsWindow {
+    pub fn new(parent: &HasSize) -> DetailsWindow {
         let mut window = Widget::new(16, 7);
         window.align(parent, HorizontalAlign::Right, VerticalAlign::Bottom, 0);
         DetailsWindow {

@@ -6,7 +6,7 @@
  */
 
 use rustty::{CellAccessor, Cell};
-use rustty::ui::{Painter, Widget, DrawArea, HorizontalAlign, VerticalAlign, create_button};
+use rustty::ui::{Painter, Widget, Alignable, HorizontalAlign, VerticalAlign, create_button};
 
 use dialog::Dialog;
 use combat::CombatResult;
