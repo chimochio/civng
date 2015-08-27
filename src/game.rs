@@ -8,15 +8,23 @@
 use std::path::Path;
 
 use rustty::{Event, CellAccessor};
-use rustty::ui::{DialogResult};
+use rustty::ui::{Dialog, DialogResult};
 
 use hexpos::{Pos, Direction};
-use unit::Unit;
+use unit::{Unit, UnitID};
 use screen::{Screen, DisplayOption};
 use civ5map::load_civ5map;
 use map::LiveMap;
-use combat::CombatResult;
+use combat::CombatStats;
 use combat_result_window::create_combat_result_dialog;
+
+#[derive(Clone)]
+enum MainloopState {
+    Normal,
+    // For later...
+    // CombatConfirm(CombatStats),
+    MessageDialog,
+}
 
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {
@@ -31,16 +39,19 @@ fn direction_for_key(key: char) -> Option<Direction> {
 }
 
 pub struct Game {
+    state: MainloopState,
     screen: Screen,
     map: LiveMap,
     scrollmode: bool, // tmp hack
     turn: u16,
-    active_unit_index: Option<usize>,
+    active_unit_index: Option<UnitID>,
+    current_dialog: Option<Dialog>,
 }
 
 impl Game {
     pub fn new(map_path: &Path) -> Game {
         Game {
+            state: MainloopState::Normal,
             screen: Screen::new(),
             map: {
                 let terrainmap = load_civ5map(map_path);
@@ -49,6 +60,7 @@ impl Game {
             scrollmode: false,
             turn: 0,
             active_unit_index: None,
+            current_dialog: None,
         }
     }
 
@@ -79,7 +91,7 @@ impl Game {
         self.map.add_unit(unit)
     }
 
-    pub fn moveunit(&mut self, direction: Direction) -> Option<CombatResult> {
+    pub fn moveunit(&mut self, direction: Direction) -> Option<CombatStats> {
         if self.active_unit_index.is_none() {
             return None;
         }
@@ -99,66 +111,81 @@ impl Game {
     }
 
     pub fn draw(&mut self) {
-        self.screen.draw(&self.map, self.active_unit_index);
+        let popup = match self.current_dialog {
+            Some(ref mut d) => Some(d.window_mut()),
+            None => None,
+        };
+        self.screen.draw(&self.map, self.active_unit_index, popup);
     }
 
-    /// Returns whether the keypress was handled by the popup.
+    /// Returns whether the keypress was handled by the current dialog.
     ///
     /// If it was, then it shouldn't be handled by the normal loop.
-    fn handle_popup_keypress(&mut self, key: char) -> bool {
-        let has_popup = self.screen.popup_dialog.is_some();
-        if has_popup {
-            let r = self.screen.popup_dialog.as_ref().unwrap().result_for_key(key);
+    fn handle_messagedialog_keypress(&mut self, key: char) {
+        if self.current_dialog.is_some() {
+            let r = self.current_dialog.as_ref().unwrap().result_for_key(key);
             match r {
                 Some(DialogResult::Ok) => {
-                    self.screen.popup_dialog = None;
+                    self.state = MainloopState::Normal;
+                    self.current_dialog = None;
                 },
                 _ => {},
             }
         }
-        has_popup
     }
+
+    /// Returns whether the mainloop should continue
+    fn handle_normal_keypress(&mut self, key: char) -> bool {
+        match key {
+            'Q' => { return false; },
+            'P' => {
+                self.screen.toggle_option(DisplayOption::PosMarkers);
+            },
+            'S' => {
+                self.scrollmode = !self.scrollmode;
+                self.update_details();
+            },
+            '\r' => {
+                self.new_turn();
+            },
+            '.' => {
+                self.cycle_active_unit();
+                self.update_details();
+                self.draw()
+            },
+            k => match direction_for_key(k) {
+                Some(d) => {
+                    if self.scrollmode {
+                        self.screen.scroll(Pos::origin().neighbor(d));
+                    }
+                    else {
+                        match self.moveunit(d) {
+                            Some(ref combat_result) => {
+                                self.current_dialog = Some(create_combat_result_dialog(combat_result));
+                                self.state = MainloopState::MessageDialog;
+                            }
+                            None => (),
+                        }
+                    }
+                },
+                None => {},
+            },
+        }
+        true
+    }
+
     /// Returns whether the mainloop should continue
     pub fn handle_events(&mut self) -> bool {
         match self.screen.term.get_event(-1) {
             Ok(Some(Event::Key(k))) => {
-                if self.handle_popup_keypress(k) {
-                    return true;
-                }
-                match k {
-                    'Q' => { return false; },
-                    'P' => {
-                        self.screen.toggle_option(DisplayOption::PosMarkers);
+                match self.state {
+                    MainloopState::Normal => {
+                        if !self.handle_normal_keypress(k) {
+                            return false;
+                        }
                     },
-                    'S' => {
-                        self.scrollmode = !self.scrollmode;
-                        self.update_details();
-                    },
-                    '\r' => {
-                        self.new_turn();
-                    },
-                    '.' => {
-                        self.cycle_active_unit();
-                        self.update_details();
-                        self.draw()
-                    },
-                    k => match direction_for_key(k) {
-                        Some(d) => {
-                            if self.scrollmode {
-                                self.screen.scroll(Pos::origin().neighbor(d));
-                            }
-                            else {
-                                match self.moveunit(d) {
-                                    Some(ref combat_result) => {
-                                        let combat_result_dialog = create_combat_result_dialog(combat_result);
-                                        self.screen.popup_dialog = Some(combat_result_dialog);
-                                    }
-                                    None => (),
-                                }
-                            }
-                        },
-                        None => {},
-                    },
+                    MainloopState::MessageDialog => { self.handle_messagedialog_keypress(k); },
+                    // MainloopState::CombatConfirm(_) => {},
                 }
             },
             _ => { return false; },

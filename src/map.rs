@@ -8,7 +8,7 @@
 use hexpos::{Pos, Direction};
 use unit::{Unit, Units, Player};
 use terrain::TerrainMap;
-use combat::CombatResult;
+use combat::CombatStats;
 
 pub struct LiveMap {
     terrain: TerrainMap,
@@ -68,7 +68,7 @@ impl LiveMap {
         self.units.add_unit(unit)
     }
 
-    pub fn moveunit(&mut self, unit_id: usize, direction: Direction) -> Option<CombatResult> {
+    pub fn moveunit(&mut self, unit_id: usize, direction: Direction) -> Option<CombatStats> {
         let newpos = self.units.get(unit_id).pos().neighbor(direction);
         if !self.terrain.get_terrain(newpos).is_passable() {
             return None;

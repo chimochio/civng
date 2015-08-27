@@ -8,9 +8,9 @@
 use rustty::{CellAccessor, Cell};
 use rustty::ui::{Painter, HorizontalAlign, Dialog, DialogResult};
 
-use combat::CombatResult;
+use combat::CombatStats;
 
-pub fn create_combat_result_dialog(result: &CombatResult) -> Dialog {
+pub fn create_combat_result_dialog(result: &CombatStats) -> Dialog {
     let mut d = Dialog::new(35, 12);
     {
         let w = d.window_mut();

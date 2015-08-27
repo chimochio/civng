@@ -15,7 +15,7 @@ use num::integer::Integer;
 // Re-export for doctests
 pub use rustty::{Terminal, CellAccessor, HasSize, Cell, Style, Attr, Color};
 use rustty::Pos as ScreenPos;
-use rustty::ui::{Painter, Alignable, HorizontalAlign, VerticalAlign, Dialog};
+use rustty::ui::{Painter, Alignable, HorizontalAlign, VerticalAlign, Widget};
 
 use hexpos::{Pos, Direction, OffsetPos};
 use terrain::{TerrainMap};
@@ -170,7 +170,6 @@ pub struct Screen {
     /// Cell at the top-left corner of the screen
     refcell: ScreenCell,
     pub details_window: DetailsWindow,
-    pub popup_dialog: Option<Dialog>,
 }
 
 impl Screen {
@@ -182,7 +181,6 @@ impl Screen {
             options: HashSet::new(),
             refcell: ScreenCell::refcell(Pos::origin()),
             details_window: details_window,
-            popup_dialog: None,
         }
     }
 
@@ -339,7 +337,7 @@ impl Screen {
     ///
     /// `map` is the terrain map we want to draw and `unitpos` is the position of the test unit
     /// we're moving around.
-    pub fn draw(&mut self, map: &LiveMap, active_unit_index: Option<usize>) {
+    pub fn draw(&mut self, map: &LiveMap, active_unit_index: Option<usize>, popup: Option<&mut Widget>) {
         self.drawgrid();
         if self.has_option(DisplayOption::PosMarkers) {
             self.drawposmarkers();
@@ -347,9 +345,8 @@ impl Screen {
         self.drawterrain(map.terrain());
         self.drawunits(map.units(), active_unit_index);
         self.details_window.draw_into(&mut self.term);
-        match self.popup_dialog {
-            Some(ref mut d) => {
-                let w = d.window_mut();
+        match popup {
+            Some(w) => {
                 w.align(&self.term, HorizontalAlign::Middle, VerticalAlign::Middle, 0);
                 w.draw_into(&mut self.term);
             }

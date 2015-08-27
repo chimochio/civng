@@ -9,9 +9,11 @@
 
 use std::slice::Iter;
 
-use combat;
+use combat::CombatStats;
 use hexpos::{Pos, Direction};
 use terrain::Terrain;
+
+pub type UnitID = usize;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Player {
@@ -21,7 +23,7 @@ pub enum Player {
 
 /// A unit on a map.
 pub struct Unit {
-    id: usize,
+    id: UnitID,
     /// Name of the unit
     name: String,
     /// Position on the map
@@ -184,8 +186,9 @@ impl Units {
         result
     }
 
-    pub fn attack(&mut self, from_id: usize, to_id: usize) -> combat::CombatResult {
-        let result = combat::attack(&self.units[from_id], &self.units[to_id]);
+    pub fn attack(&mut self, from_id: UnitID, to_id: UnitID) -> CombatStats {
+        let mut result = CombatStats::new(&self.units[from_id], &self.units[to_id]);
+        result.roll();
         (&mut self.units[from_id]).hp = result.attacker_remaining_hp();
         (&mut self.units[from_id]).movements = 0;
         (&mut self.units[to_id]).hp = result.defender_remaining_hp();
@@ -195,11 +198,11 @@ impl Units {
         result
     }
 
-    pub fn max_id(&self) -> usize {
+    pub fn max_id(&self) -> UnitID {
         self.units.len() - 1
     }
 
-    pub fn next_active_unit(&self, after_id: usize) -> Option<usize> {
+    pub fn next_active_unit(&self, after_id: UnitID) -> Option<UnitID> {
         // We want to start at the current index and cycle from there, starting back at 0 when
         // we reach the end of the line. This is why we have this two-parts algo.
         let second_half = self.my_units().skip_while(|u| u.id <= after_id);
@@ -214,7 +217,7 @@ impl Units {
         }
     }
 
-    pub fn unit_at_pos(&self, pos: Pos) -> Option<usize> {
+    pub fn unit_at_pos(&self, pos: Pos) -> Option<UnitID> {
         for u in self.all_units() {
             if u.pos() == pos {
                 return Some(u.id());
@@ -229,11 +232,11 @@ impl Units {
         }
     }
 
-    pub fn get(&self, unit_id: usize) -> &Unit {
+    pub fn get(&self, unit_id: UnitID) -> &Unit {
         &self.units[unit_id]
     }
 
-    pub fn get_mut(&mut self, unit_id: usize) -> &mut Unit {
+    pub fn get_mut(&mut self, unit_id: UnitID) -> &mut Unit {
         &mut self.units[unit_id]
     }
 
