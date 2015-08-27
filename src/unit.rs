@@ -186,16 +186,16 @@ impl Units {
         result
     }
 
-    pub fn attack(&mut self, from_id: UnitID, to_id: UnitID) -> CombatStats {
-        let mut result = CombatStats::new(&self.units[from_id], &self.units[to_id]);
-        result.roll();
-        (&mut self.units[from_id]).hp = result.attacker_remaining_hp();
+    pub fn attack(&mut self, combat_stats: &mut CombatStats) {
+        let from_id = combat_stats.attacker_id;
+        let to_id = combat_stats.defender_id;
+        combat_stats.roll();
+        (&mut self.units[from_id]).hp = combat_stats.attacker_remaining_hp();
         (&mut self.units[from_id]).movements = 0;
-        (&mut self.units[to_id]).hp = result.defender_remaining_hp();
-        if result.defender_remaining_hp() == 0 {
+        (&mut self.units[to_id]).hp = combat_stats.defender_remaining_hp();
+        if combat_stats.defender_remaining_hp() == 0 {
             (&mut self.units[from_id]).pos = (&mut self.units[to_id]).pos;
         }
-        result
     }
 
     pub fn max_id(&self) -> UnitID {

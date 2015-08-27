@@ -17,12 +17,12 @@ use civ5map::load_civ5map;
 use map::LiveMap;
 use combat::CombatStats;
 use combat_result_window::create_combat_result_dialog;
+use combat_confirm_dialog::create_combat_confirm_dialog;
 
 #[derive(Clone)]
 enum MainloopState {
     Normal,
-    // For later...
-    // CombatConfirm(CombatStats),
+    CombatConfirm(CombatStats),
     MessageDialog,
 }
 
@@ -122,15 +122,33 @@ impl Game {
     ///
     /// If it was, then it shouldn't be handled by the normal loop.
     fn handle_messagedialog_keypress(&mut self, key: char) {
-        if self.current_dialog.is_some() {
-            let r = self.current_dialog.as_ref().unwrap().result_for_key(key);
-            match r {
-                Some(DialogResult::Ok) => {
-                    self.state = MainloopState::Normal;
-                    self.current_dialog = None;
-                },
-                _ => {},
-            }
+        assert!(self.current_dialog.is_some());
+        let r = self.current_dialog.as_ref().unwrap().result_for_key(key);
+        match r {
+            Some(DialogResult::Ok) => {
+                self.state = MainloopState::Normal;
+                self.current_dialog = None;
+            },
+            _ => {},
+        }
+    }
+
+    fn handle_combatconfirm_keypress(&mut self, key: char, combat_stats: &mut CombatStats) {
+        assert!(self.current_dialog.is_some());
+        let r = self.current_dialog.as_ref().unwrap().result_for_key(key);
+        match r {
+            Some(DialogResult::Ok) => {
+                self.map.attack(combat_stats);
+                self.cycle_active_unit();
+                self.update_details();
+                self.current_dialog = Some(create_combat_result_dialog(combat_stats));
+                self.state = MainloopState::MessageDialog;
+            },
+            Some(DialogResult::Cancel) => {
+                self.state = MainloopState::Normal;
+                self.current_dialog = None;
+            },
+            _ => {},
         }
     }
 
@@ -161,8 +179,8 @@ impl Game {
                     else {
                         match self.moveunit(d) {
                             Some(ref combat_result) => {
-                                self.current_dialog = Some(create_combat_result_dialog(combat_result));
-                                self.state = MainloopState::MessageDialog;
+                                self.current_dialog = Some(create_combat_confirm_dialog(combat_result));
+                                self.state = MainloopState::CombatConfirm(combat_result.clone());
                             }
                             None => (),
                         }
@@ -178,14 +196,14 @@ impl Game {
     pub fn handle_events(&mut self) -> bool {
         match self.screen.term.get_event(-1) {
             Ok(Some(Event::Key(k))) => {
-                match self.state {
+                match self.state.clone() {
                     MainloopState::Normal => {
                         if !self.handle_normal_keypress(k) {
                             return false;
                         }
                     },
                     MainloopState::MessageDialog => { self.handle_messagedialog_keypress(k); },
-                    // MainloopState::CombatConfirm(_) => {},
+                    MainloopState::CombatConfirm(mut c) => { self.handle_combatconfirm_keypress(k, &mut c); },
                 }
             },
             _ => { return false; },

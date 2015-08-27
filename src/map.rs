@@ -78,7 +78,9 @@ impl LiveMap {
                 if self.units.get(uid).owner() == Player::Me {
                     return None
                 }
-                let combat_result = self.units.attack(unit_id, uid);
+                let attacker = self.units.get(unit_id);
+                let defender = self.units.get(uid);
+                let combat_result = CombatStats::new(attacker, defender);
                 return Some(combat_result);
             }
             None => (),
@@ -87,6 +89,10 @@ impl LiveMap {
         let terrain = self.terrain.get_terrain(newpos);
         unit.move_(direction, terrain);
         None
+    }
+
+    pub fn attack(&mut self, combat_stats: &mut CombatStats) {
+        self.units.attack(combat_stats);
     }
 
     pub fn refresh(&mut self) {
