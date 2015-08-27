@@ -8,6 +8,7 @@
 use std::path::Path;
 
 use rustty::{Event, CellAccessor};
+use rustty::ui::{DialogResult};
 
 use hexpos::{Pos, Direction};
 use unit::Unit;
@@ -15,7 +16,7 @@ use screen::{Screen, DisplayOption};
 use civ5map::load_civ5map;
 use map::LiveMap;
 use combat::CombatResult;
-use combat_result_window::CombatResultWindow;
+use combat_result_window::create_combat_result_dialog;
 
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {
@@ -101,12 +102,27 @@ impl Game {
         self.screen.draw(&self.map, self.active_unit_index);
     }
 
+    /// Returns whether the keypress was handled by the popup.
+    ///
+    /// If it was, then it shouldn't be handled by the normal loop.
+    fn handle_popup_keypress(&mut self, key: char) -> bool {
+        let has_popup = self.screen.popup_dialog.is_some();
+        if has_popup {
+            let r = self.screen.popup_dialog.as_ref().unwrap().result_for_key(key);
+            match r {
+                Some(DialogResult::Ok) => {
+                    self.screen.popup_dialog = None;
+                },
+                _ => {},
+            }
+        }
+        has_popup
+    }
     /// Returns whether the mainloop should continue
     pub fn handle_events(&mut self) -> bool {
         match self.screen.term.get_event(-1) {
             Ok(Some(Event::Key(k))) => {
-                if self.screen.popup_dialog.is_some() {
-                    self.screen.popup_dialog = None;
+                if self.handle_popup_keypress(k) {
                     return true;
                 }
                 match k {
@@ -134,9 +150,8 @@ impl Game {
                             else {
                                 match self.moveunit(d) {
                                     Some(ref combat_result) => {
-                                        let mut combat_result_dialog = CombatResultWindow::new();
-                                        combat_result_dialog.update(combat_result);
-                                        self.screen.popup_dialog = Some(Box::new(combat_result_dialog));
+                                        let combat_result_dialog = create_combat_result_dialog(combat_result);
+                                        self.screen.popup_dialog = Some(combat_result_dialog);
                                     }
                                     None => (),
                                 }

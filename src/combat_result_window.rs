@@ -6,29 +6,15 @@
  */
 
 use rustty::{CellAccessor, Cell};
-use rustty::ui::{Painter, Widget, Alignable, HorizontalAlign, VerticalAlign, create_button};
+use rustty::ui::{Painter, HorizontalAlign, Dialog, DialogResult};
 
-use dialog::Dialog;
 use combat::CombatResult;
 
-pub struct CombatResultWindow {
-    window: Widget,
-}
-
-impl CombatResultWindow {
-    pub fn new() -> CombatResultWindow {
-        let window = Widget::new(35, 12);
-        CombatResultWindow {
-            window: window,
-        }
-    }
-
-    pub fn draw_into(&self, cells: &mut CellAccessor) {
-        self.window.draw_into(cells);
-    }
-
-    pub fn update(&mut self, result: &CombatResult) {
-        self.window.clear(Cell::default());
+pub fn create_combat_result_dialog(result: &CombatResult) -> Dialog {
+    let mut d = Dialog::new(35, 12);
+    {
+        let w = d.window_mut();
+        w.clear(Cell::default());
         let result_desc = if result.attacker_remaining_hp() == 0 {
             "Crushing Defeat"
         }
@@ -41,8 +27,8 @@ impl CombatResultWindow {
         else {
             "Defeat"
         };
-        let x = self.window.halign_line(result_desc, HorizontalAlign::Middle, 1);
-        self.window.printline(x, 1, result_desc);
+        let x = w.halign_line(result_desc, HorizontalAlign::Middle, 1);
+        w.printline(x, 1, result_desc);
         let lines = [
             format!("Attacker: {}", result.attacker_name),
             format!("Dmg received: {}", result.dmg_to_attacker),
@@ -52,22 +38,12 @@ impl CombatResultWindow {
             format!("Remaining HP: {}", result.defender_remaining_hp()),
         ];
         for (i, s) in lines.iter().enumerate() {
-            self.window.printline(2, 3+i, &s[..]);
+            w.printline(2, 3+i, &s[..]);
         }
-        let mut b = create_button("Ok", Some('o'));
-        b.valign(&self.window, VerticalAlign::Bottom, 1);
-        b.halign(&self.window, HorizontalAlign::Middle, 1);
-        b.draw_into(&mut self.window);
-        self.window.draw_box();
     }
-}
-
-impl Dialog for CombatResultWindow {
-    fn window(&self) -> &Widget {
-        &self.window
-    }
-    fn window_mut(&mut self) -> &mut Widget {
-        &mut self.window
-    }
+    d.add_button("Ok", 'o', DialogResult::Ok);
+    d.draw_buttons();
+    d.window_mut().draw_box();
+    d
 }
 

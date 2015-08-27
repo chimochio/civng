@@ -15,13 +15,12 @@ use num::integer::Integer;
 // Re-export for doctests
 pub use rustty::{Terminal, CellAccessor, HasSize, Cell, Style, Attr, Color};
 use rustty::Pos as ScreenPos;
-use rustty::ui::{Painter, Alignable, HorizontalAlign, VerticalAlign};
+use rustty::ui::{Painter, Alignable, HorizontalAlign, VerticalAlign, Dialog};
 
 use hexpos::{Pos, Direction, OffsetPos};
 use terrain::{TerrainMap};
 use map::LiveMap;
 use unit::{Units, Player};
-use dialog::Dialog;
 use details_window::DetailsWindow;
 
 const CELL_WIDTH: usize = 7;
@@ -171,7 +170,7 @@ pub struct Screen {
     /// Cell at the top-left corner of the screen
     refcell: ScreenCell,
     pub details_window: DetailsWindow,
-    pub popup_dialog: Option<Box<Dialog>>,
+    pub popup_dialog: Option<Dialog>,
 }
 
 impl Screen {
