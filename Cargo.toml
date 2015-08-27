@@ -15,5 +15,5 @@ rand = "*"
 
 [dependencies.rustty]
 git = "https://github.com/hsoft/rustty.git"
-branch = "wip"
+branch = "ui"
 
