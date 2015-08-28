@@ -22,9 +22,11 @@ pub fn create_combat_confirm_dialog(result: &CombatStats) -> Dialog {
         let (dmin, dmax) = result.dmgrange_to_defender;
         let lines = [
             format!("Attacker: {}", result.attacker_name),
-            format!("Dmg received (min/max): {}/{}", amin, amax),
+            format!("HP: {}", result.attacker_starting_hp),
+            format!("Dmg incoming (min/max): {}/{}", amin, amax),
             format!("Defender: {}", result.defender_name),
-            format!("Dmg received (min/max): {}/{}", dmin, dmax),
+            format!("HP: {}", result.defender_starting_hp),
+            format!("Dmg incoming (min/max): {}/{}", dmin, dmax),
         ];
         for (i, s) in lines.iter().enumerate() {
             w.printline(2, 3+i, &s[..]);
