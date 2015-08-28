@@ -128,6 +128,8 @@ impl Game {
             Some(DialogResult::Ok) => {
                 self.state = MainloopState::Normal;
                 self.current_dialog = None;
+                self.cycle_active_unit();
+                self.update_details();
             },
             _ => {},
         }
@@ -139,7 +141,6 @@ impl Game {
         match r {
             Some(DialogResult::Ok) => {
                 self.map.attack(combat_stats);
-                self.cycle_active_unit();
                 self.update_details();
                 self.current_dialog = Some(create_combat_result_dialog(combat_stats));
                 self.state = MainloopState::MessageDialog;
