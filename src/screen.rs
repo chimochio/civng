@@ -274,7 +274,8 @@ impl Screen {
         ];
         // Don't use len(), it counts *bytes*.
         let linewidth = lines[0].chars().count();
-        let colrepeatcount = self.term.cols() / linewidth;
+        // +1 because we want the rightmost part of the grid to be there even if incomplete
+        let colrepeatcount = (self.term.cols() / linewidth) + 1;
         for y in 0..self.term.rows() {
             for colrepeat in 0..colrepeatcount {
                 let x = colrepeat * linewidth;
