@@ -6,7 +6,7 @@
  */
 
 use hexpos::{Pos, Direction};
-use unit::{Unit, Units, Player};
+use unit::{Unit, Units, UnitID, Player};
 use terrain::TerrainMap;
 use combat::{CombatStats, Modifier, ModifierType};
 
@@ -68,7 +68,50 @@ impl LiveMap {
         self.units.add_unit(unit)
     }
 
-    pub fn moveunit(&mut self, unit_id: usize, direction: Direction) -> Option<CombatStats> {
+    fn get_terrain_modifier(&self, unit_id: UnitID) -> Option<Modifier> {
+        let unit = self.units.get(unit_id);
+        let terrain = self.terrain.get_terrain(unit.pos());
+        let terrain_modifer_amount = terrain.defense_modifier();
+        if terrain_modifer_amount != 0 {
+            Some(Modifier::new(terrain_modifer_amount, ModifierType::Terrain))
+        }
+        else {
+            None
+        }
+    }
+
+    fn get_flanking_modifier(&self, against_id: UnitID) -> Option<Modifier> {
+        let against = self.units.get(against_id);
+        let mut flank_count = 0;
+        for d in Direction::all().iter() {
+            if let Some(uid) = self.units.unit_at_pos(against.pos().neighbor(*d)) {
+                if self.units.get(uid).owner() != against.owner() {
+                    flank_count += 1;
+                }
+            }
+        }
+        if flank_count > 1 {
+            Some(Modifier::new((flank_count - 1) * 10, ModifierType::Flanking))
+        }
+        else {
+            None
+        }
+    }
+
+    fn get_unit_modifiers(&self, unit_id: UnitID, against_id: UnitID, defends: bool) -> Vec<Modifier> {
+        let mut result = Vec::new();
+        if defends {
+            if let Some(m) = self.get_terrain_modifier(unit_id) {
+                result.push(m);
+            }
+        }
+        if let Some(m) = self.get_flanking_modifier(against_id) {
+            result.push(m);
+        }
+        result
+    }
+
+    pub fn moveunit(&mut self, unit_id: UnitID, direction: Direction) -> Option<CombatStats> {
         let newpos = self.units.get(unit_id).pos().neighbor(direction);
         let target_terrain = self.terrain.get_terrain(newpos);
         if !target_terrain.is_passable() {
@@ -81,14 +124,8 @@ impl LiveMap {
                 }
                 let attacker = self.units.get(unit_id);
                 let defender = self.units.get(uid);
-                let attacker_modifiers = Vec::new();
-                let mut defender_modifiers = Vec::new();
-                let terrain_modifer_amount = target_terrain.defense_modifier();
-                if terrain_modifer_amount != 0 {
-                    defender_modifiers.push(
-                        Modifier::new(terrain_modifer_amount, ModifierType::Terrain)
-                    );
-                }
+                let attacker_modifiers = self.get_unit_modifiers(unit_id, uid, false);
+                let defender_modifiers = self.get_unit_modifiers(uid, unit_id, true);
                 let combat_result = CombatStats::new(attacker, attacker_modifiers, defender, defender_modifiers);
                 return Some(combat_result);
             }

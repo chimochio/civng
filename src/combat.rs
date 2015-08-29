@@ -54,12 +54,12 @@ impl CombatStats {
         }
     }
 
-    pub fn attacker_strength(&self) -> u16 {
-        apply_modifier(self.attacker_base_strength as u16, self.attacker_modifiers_total())
+    pub fn attacker_strength(&self) -> f32 {
+        apply_modifier(self.attacker_base_strength as f32, self.attacker_modifiers_total())
     }
 
-    pub fn defender_strength(&self) -> u16 {
-        apply_modifier(self.defender_base_strength as u16, self.defender_modifiers_total())
+    pub fn defender_strength(&self) -> f32 {
+        apply_modifier(self.defender_base_strength as f32, self.defender_modifiers_total())
     }
 
     pub fn attacker_modifiers_total(&self) -> i16 {
@@ -122,12 +122,14 @@ impl CombatStats {
 #[derive(Clone, Copy)]
 pub enum ModifierType {
     Terrain,
+    Flanking,
 }
 
 impl ModifierType {
     pub fn description(&self) -> &str {
         match *self {
             ModifierType::Terrain => "Terrain",
+            ModifierType::Flanking => "Flanking",
         }
     }
 }
@@ -159,9 +161,9 @@ fn sum_modifiers(modifiers: &Vec<Modifier>) -> i16 {
     modifiers.iter().fold(0, |acc, m| acc + m.amount as i16)
 }
 
-fn apply_modifier(strength: u16, modifier: i16) -> u16 {
+fn apply_modifier(strength: f32, modifier: i16) -> f32 {
     let fmodifier = 1.0 + (modifier as f32 / 100.0);
-    (strength as f32 * fmodifier).floor() as u16
+    strength * fmodifier
 }
 
 fn roll_dice(range: DmgRange) -> u8 {
@@ -171,10 +173,10 @@ fn roll_dice(range: DmgRange) -> u8 {
     Range::new(min, max+1).ind_sample(&mut rng)
 }
 
-fn compute_dmg_range(source_strength: u16 , source_hp: u8, target_strength: u16) -> DmgRange {
+fn compute_dmg_range(source_strength: f32 , source_hp: u8, target_strength: f32) -> DmgRange {
     let target_is_weak = source_strength > target_strength;
     let (strong_strength, weak_strength) = if target_is_weak { (source_strength, target_strength) } else { (target_strength, source_strength) };
-    let r = strong_strength as f32 / weak_strength as f32;
+    let r = strong_strength / weak_strength;
     let mut m = 0.5 + num::pow(r+3.0, 4) / 512.0;
     if !target_is_weak {
         m = 1.0 / m;

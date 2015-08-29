@@ -29,6 +29,19 @@ pub enum Direction {
     NorthWest,
 }
 
+impl Direction {
+    pub fn all() -> [Direction; 6] {
+        [
+            Direction::North,
+            Direction::NorthEast,
+            Direction::SouthEast,
+            Direction::South,
+            Direction::SouthWest,
+            Direction::NorthWest,
+        ]
+    }
+}
+
 /// "Cube"-type position. We simply call it `Pos` for conciseness because that's our "official" pos.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Pos {
