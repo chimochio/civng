@@ -9,7 +9,8 @@ reason to dash head-first into this folly.
 Ok, I know, I'm crazy and I'm never going to finish this, but then, *what the hell* it's so much
 fun to implement.
 
-[![asciinema](https://asciinema.org/a/8mg3q2kgdcu2yw7867p5dql0s.png)](https://asciinema.org/a/8mg3q2kgdcu2yw7867p5dql0s)
+[![asciinema](https://asciinema.org/a/ecps7blbb5l65isrov4x6c419.png)](https://asciinema.org/a/ecps7blbb5l65isrov4x6c419)
+
 ## Current status
 
 Very early. Features:
