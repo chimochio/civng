@@ -8,7 +8,7 @@
 use hexpos::{Pos, Direction};
 use unit::{Unit, Units, Player};
 use terrain::TerrainMap;
-use combat::CombatStats;
+use combat::{CombatStats, Modifier, ModifierType};
 
 pub struct LiveMap {
     terrain: TerrainMap,
@@ -70,7 +70,8 @@ impl LiveMap {
 
     pub fn moveunit(&mut self, unit_id: usize, direction: Direction) -> Option<CombatStats> {
         let newpos = self.units.get(unit_id).pos().neighbor(direction);
-        if !self.terrain.get_terrain(newpos).is_passable() {
+        let target_terrain = self.terrain.get_terrain(newpos);
+        if !target_terrain.is_passable() {
             return None;
         }
         match self.units.unit_at_pos(newpos) {
@@ -80,14 +81,21 @@ impl LiveMap {
                 }
                 let attacker = self.units.get(unit_id);
                 let defender = self.units.get(uid);
-                let combat_result = CombatStats::new(attacker, defender);
+                let attacker_modifiers = Vec::new();
+                let mut defender_modifiers = Vec::new();
+                let terrain_modifer_amount = target_terrain.defense_modifier();
+                if terrain_modifer_amount != 0 {
+                    defender_modifiers.push(
+                        Modifier::new(terrain_modifer_amount, ModifierType::Terrain)
+                    );
+                }
+                let combat_result = CombatStats::new(attacker, attacker_modifiers, defender, defender_modifiers);
                 return Some(combat_result);
             }
             None => (),
         }
         let unit = self.units.get_mut(unit_id);
-        let terrain = self.terrain.get_terrain(newpos);
-        unit.move_(direction, terrain);
+        unit.move_(direction, target_terrain);
         None
     }
 

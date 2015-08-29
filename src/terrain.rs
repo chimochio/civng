@@ -71,6 +71,18 @@ impl Terrain {
         }
     }
 
+    pub fn defense_modifier(&self) -> i8 {
+        match *self {
+            Terrain::Plain => 0,
+            Terrain::Grassland => 0,
+            Terrain::Desert => 0,
+            Terrain::Hill => 25,
+            Terrain::Mountain => 0,
+            Terrain::Water => 0,
+            Terrain::OutOfBounds => 0,
+        }
+    }
+
     /// Returns whether the terrain is passable by our moving unit.
     pub fn is_passable(&self) -> bool {
         match *self {
