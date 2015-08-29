@@ -18,6 +18,8 @@ Very early. Features:
 * Loads ".Civ5Map" files.
 * Move around Larry (`L`) and Benny (`B`).
 * Combat! Meet Evil Man (`E`), an enemy unit shown in red somewhere on the map and fight him!
+* Nice pre/post combat dialogs with neat info.
+* Some combat modifiers, such as terrain and flanking.
 * Basic terrain types, with some of them impassable.
 * Map scrolling.
 * Turns, with limited movements in each one.
@@ -25,7 +27,7 @@ Very early. Features:
 
 ## Requirements
 
-* [Rust][rust] 1.1
+* [Rust][rust] 1.2
 * [Cargo][cargo]
 * A terminal using a font that supports [Unicode box-drawing characters][boxdrawing]
 
@@ -91,5 +93,4 @@ movement keys, it's the map that will scroll instead of the active unit.
 [rustty]: https://github.com/cpjreynolds/rustty
 [num]: https://crates.io/crates/num
 [byteorder]: https://crates.io/crates/byteorder
-
 
