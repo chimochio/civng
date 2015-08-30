@@ -10,23 +10,22 @@
 use std::collections::HashSet;
 use std::cmp::{min, max};
 
-use num::integer::Integer;
-
 // Re-export for doctests
-pub use rustty::{Terminal, CellAccessor, HasSize, Cell, Style, Attr, Color};
+pub use rustty::{Terminal, CellAccessor, HasPosition, HasSize, Cell, Style, Attr, Color};
 use rustty::Pos as ScreenPos;
 use rustty::ui::{Painter, Alignable, HorizontalAlign, VerticalAlign, Widget};
 
 use hexpos::{Pos, Direction, OffsetPos};
-use terrain::{TerrainMap};
+use terrain::{Terrain, TerrainMap};
 use map::LiveMap;
-use unit::{Units, Player};
+use unit::{Unit, Player};
 use details_window::DetailsWindow;
 
 const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
-const CELL_CENTER_COL: usize = 4;
-const CELL_CENTER_ROW: usize = 1;
+// See diagram in HexCell's comment to understand why we have this offset.
+const CELL_OFFSET_X: usize = 1;
+const CELL_OFFSET_Y: usize = 0;
 
 /// Returns the position of `pos` on the screen
 ///
@@ -36,18 +35,72 @@ const CELL_CENTER_ROW: usize = 1;
 /// The screen pos given is the approximate center of the cell, as defined by `CELL_CENTER_COL`
 /// and `CELL_CENTER_ROW`.
 fn get_screenpos(pos: Pos) -> ScreenPos {
-    let (mut spx, mut spy) = (CELL_CENTER_COL, CELL_CENTER_ROW);
+    let (mut spx, mut spy) = (CELL_OFFSET_X, CELL_OFFSET_Y);
     spx = ((spx as i32) + pos.x * (CELL_WIDTH as i32)) as usize;
     spy = ((spy as i32) - pos.y * ((CELL_HEIGHT / 2) as i32)) as usize;
     spy = ((spy as i32) + pos.z * ((CELL_HEIGHT / 2) as i32)) as usize;
     (spx, spy)
 }
 
-pub fn get_contents_screenpos(pos: Pos, dx: i8, dy: i8) -> ScreenPos {
-    let (mut spx, mut spy) = get_screenpos(pos);
-    spx = ((spx as isize) + (dx as isize)) as usize;
-    spy = ((spy as isize) + (dy as isize)) as usize;
-    (spx, spy)
+/*
+ X     ╲
+╱       ╲
+╲       ╱
+ ╲_____╱
+ * Origin of the widget is at X.
+ * Don't put contents in corners, you'll conflict with grid lines.
+ */
+struct HexCell {
+    widget: Widget,
+}
+
+impl HexCell {
+    pub fn new() -> HexCell {
+        let widget = Widget::new(CELL_WIDTH, CELL_HEIGHT);
+        HexCell {
+            widget: widget,
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.widget.clear(Cell::default());
+    }
+
+    pub fn draw_into(&self, cells: &mut CellAccessor) {
+        self.widget.draw_into(cells);
+    }
+
+    pub fn move_(&mut self, pos: Pos) {
+        let (x, y) = get_screenpos(pos);
+        self.widget.set_origin((x, y));
+    }
+
+    pub fn draw_terrain(&mut self, terrain: Terrain) {
+        let ch = terrain.map_char();
+        let s: String = (0..5).map(|_| ch).collect();
+        self.widget.printline(1, 0, &s);
+        let cell = Cell::with_styles(Style::with_attr(Attr::Underline), Style::default());
+        self.widget.printline_with_cell(1, 3, &s, cell);
+    }
+
+    pub fn draw_posmarker(&mut self, pos: OffsetPos) {
+        self.widget.printline(1, 1, &pos.fmt());
+    }
+
+    pub fn draw_unit(&mut self, unit: &Unit, is_active: bool) {
+        let mut cell = self.widget.get_mut(3, 2).unwrap();
+        cell.set_ch(unit.map_symbol());
+        let style = if unit.owner() != Player::Me {
+                Style::with_color(Color::Red)
+            }
+            else if is_active {
+                Style::with_color(Color::Blue)
+            }
+            else {
+                Style::default()
+            };
+        cell.set_fg(style);
+    }
 }
 
 struct VisiblePosIterator {
@@ -201,85 +254,54 @@ impl Screen {
         self.topleft = OffsetPos::new(target_x, target_y).to_pos();
     }
 
-    // ">= 0" checks are useless because of usize, but it seems dangerous to leave them out. If we
-    // ever adopt a signed int, we might introduce a bug here without knowing.
-    #[allow(unused_comparisons)]
-    fn is_pos_visible(&self, pos: Pos) -> bool {
-        let (x, y) = get_screenpos(self.relpos(pos));
-        y >= 0 && x >= 0 && y < self.term.rows() && x < self.term.cols()
-    }
-
     fn visible_cells(&self) -> VisiblePosIterator {
         VisiblePosIterator::new(self.topleft, self.term.cols(), self.term.rows())
     }
 
     /// Fills the screen with a hex grid.
     fn drawgrid(&mut self) {
-        let lines: [&str; 4] = [
-            " ╱     ╲      ",
-            "╱       ╲_____",
-            "╲       ╱     ",
-            " ╲_____╱      ",
+        //  ╱     ╲
+        // ╱       ╲_____
+        // ╲       ╱
+        //  ╲_____╱
+        const SPAN_X: usize = 14;
+        const SPAN_Y: usize = 4;
+        let chars = [
+            ('╱', 1, 0),
+            ('╲', 7, 0),
+            ('╱', 0, 1),
+            ('╲', 8, 1),
+            ('╲', 0, 2),
+            ('╱', 8, 2),
+            ('╲', 1, 3),
+            ('╱', 7, 3),
         ];
-        // Don't use len(), it counts *bytes*.
-        let linewidth = lines[0].chars().count();
         // +1 because we want the rightmost part of the grid to be there even if incomplete
-        let colrepeatcount = (self.term.cols() / linewidth) + 1;
-        for y in 0..self.term.rows() {
+        let rowrepeatcount = (self.term.rows() / SPAN_Y) + 1;
+        let colrepeatcount = (self.term.cols() / SPAN_X) + 1;
+        for rowrepeat in 0..rowrepeatcount {
+            let basey = rowrepeat * SPAN_Y;
             for colrepeat in 0..colrepeatcount {
-                let x = colrepeat * linewidth;
-                let (_, lineno) = y.div_rem(&lines.len());
-                let line = lines[lineno];
-                self.term.printline(x, y, line);
+                let basex = colrepeat * SPAN_X;
+                for &(ch, offset_x, offset_y) in chars.iter() {
+                    if let Some(cell) = self.term.get_mut(basex + offset_x, basey + offset_y) {
+                        cell.set_ch(ch);
+                    }
+                }
             }
         }
-    }
-
-    /// Draws position marks in each hex cell on the screen.
-    fn drawposmarkers(&mut self) {
-        for pos in self.visible_cells() {
-            let (x, y) = get_contents_screenpos(self.relpos(pos), -3, 0);
-            self.term.printline(x, y, &pos.to_offset_pos().fmt());
-        }
-    }
-
-    /// Draws terrain information in each visible cell.
-    fn drawterrain(&mut self, map: &TerrainMap) {
-        for pos in self.visible_cells() {
-            let ch = map.get_terrain(pos).map_char();
-            let s: String = (0..5).map(|_| ch).collect();
-            let (x, y) = get_contents_screenpos(self.relpos(pos), -2, -1);
-            self.term.printline(x, y, &s);
-            let cell = Cell::with_styles(Style::with_attr(Attr::Underline), Style::default());
-            let (x, y) = get_contents_screenpos(self.relpos(pos), -2, 2);
-            self.term.printline_with_cell(x, y, &s, cell);
-        }
-    }
-
-    /// Draws a 'X' at specified `pos`.
-    fn drawunits(&mut self, units: &Units, active_unit_index: Option<usize>) {
-        for unit in units.all_units() {
-            let pos = unit.pos();
-            if self.is_pos_visible(pos) {
-                let relpos = self.relpos(pos);
-                let (x, y) = get_contents_screenpos(relpos, 0, 1);
-                match self.term.get_mut(x, y) {
-                    Some(cell) => {
-                        cell.set_ch(unit.map_symbol());
-                        let style = if unit.owner() != Player::Me {
-                                Style::with_color(Color::Red)
-                            }
-                            else if active_unit_index.is_some() && unit.id() == active_unit_index.unwrap() {
-                                Style::with_color(Color::Blue)
-                            }
-                            else {
-                                Style::default()
-                            };
-                        cell.set_fg(style);
-                    },
-                    None => {}, // ignore
-                };
-            };
+        // In addition to the vertical wavy lines, we also need to draw an intermittent horizontal
+        // line on the top of the screen because the upper hex cells that only draw their bottom
+        // parts are not drawn at all (and it's the "contents" part of the cell that is responsible
+        // to draw the horizontal line, not drawgrid()). We compensate here.
+        for colrepeat in 0..colrepeatcount {
+            // +9 because we start at the edge of the hex cell we've just drawn
+            let basex = colrepeat * SPAN_X + 9;
+            for i in 0..5 {
+                if let Some(cell) = self.term.get_mut(basex + i, 1) {
+                    cell.set_fg(Style::with_attr(Attr::Underline));
+                }
+            }
         }
     }
 
@@ -288,19 +310,28 @@ impl Screen {
     /// `map` is the terrain map we want to draw and `unitpos` is the position of the test unit
     /// we're moving around.
     pub fn draw(&mut self, map: &LiveMap, active_unit_index: Option<usize>, popup: Option<&mut Widget>) {
-        self.drawgrid();
-        if self.has_option(DisplayOption::PosMarkers) {
-            self.drawposmarkers();
-        }
-        self.drawterrain(map.terrain());
-        self.drawunits(map.units(), active_unit_index);
-        self.details_window.draw_into(&mut self.term);
-        match popup {
-            Some(w) => {
-                w.align(&self.term, HorizontalAlign::Middle, VerticalAlign::Middle, 0);
-                w.draw_into(&mut self.term);
+        let mut cell = HexCell::new();
+        for pos in self.visible_cells() {
+            cell.clear();
+            let relpos = self.relpos(pos);
+            if self.has_option(DisplayOption::PosMarkers) {
+                cell.draw_posmarker(pos.to_offset_pos());
             }
-            None => (),
+            let terrain = map.terrain().get_terrain(pos);
+            cell.draw_terrain(terrain);
+            if let Some(unit_id) = map.units().unit_at_pos(pos) {
+                let unit = map.units().get(unit_id);
+                let is_active = active_unit_index.is_some() && unit.id() == active_unit_index.unwrap();
+                cell.draw_unit(unit, is_active);
+            }
+            cell.move_(relpos);
+            cell.draw_into(&mut self.term);
+        }
+        self.drawgrid();
+        self.details_window.draw_into(&mut self.term);
+        if let Some(w) = popup {
+            w.align(&self.term, HorizontalAlign::Middle, VerticalAlign::Middle, 0);
+            w.draw_into(&mut self.term);
         }
         let _ = self.term.swap_buffers();
     }
