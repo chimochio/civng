@@ -24,7 +24,7 @@ Very early. Features:
 * Basic terrain types, with some of them impassable.
 * Map scrolling.
 * Turns, with limited movements in each one.
-* Active unit is colored.
+* Active unit is colored and its reachable cells are highlighted in yellow.
 
 ## Requirements
 
@@ -75,6 +75,9 @@ two units, Larry and Benny (`L` and `B`) which move in turns. You can move it wi
 
 Each unit has two movements per turn. You can cycle through active units with `.`. You start a new
 turn by pressing Return.
+
+The cells highlighted in yellow around the active units are cells where that unit can move this
+turn. There will soon be a "move to" feature allowing us to move past a friendly unit.
 
 If you move on a tile with an enemy unit on it, you initiate a melee attack automatically. If you
 win, you move on the enemy's tile.

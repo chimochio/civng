@@ -10,8 +10,8 @@
 use std::slice::Iter;
 
 use combat::CombatStats;
-use hexpos::{Pos, Direction};
-use terrain::Terrain;
+use hexpos::{Pos, Direction, PathWalker};
+use terrain::{Terrain, TerrainMap};
 
 pub type UnitID = usize;
 
@@ -156,6 +156,33 @@ impl Unit {
     /// That is, regenerates its movement points.
     pub fn refresh(&mut self) {
         self.movements = 2;
+    }
+
+    pub fn reachable_pos(&self, map: &TerrainMap, units: &Units) -> Vec<Pos> {
+        let mut result = Vec::new();
+        let mut walker = PathWalker::new(self.pos(), self.movements as usize);
+        while let Some(pos) = walker.next() {
+            let terrain = map.get_terrain(pos);
+            if terrain.is_passable() {
+                match units.unit_at_pos(pos) {
+                    Some(uid) => {
+                        if units.get(uid).owner() != self.owner() {
+                            walker.backoff();
+                        }
+                    },
+                    None => { result.push(pos) },
+                }
+                let path = walker.get_current_path();
+                let cost = path[1..].iter().fold(0, |acc, &p| acc + map.get_terrain(p).movement_cost());
+                if cost >= self.movements {
+                    walker.backoff();
+                }
+            }
+            else {
+                walker.backoff();
+            }
+        }
+        result
     }
 }
 

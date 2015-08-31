@@ -337,6 +337,13 @@ impl Screen {
     /// `map` is the terrain map we want to draw and `unitpos` is the position of the test unit
     /// we're moving around.
     pub fn draw(&mut self, map: &LiveMap, active_unit_index: Option<usize>, popup: Option<&mut Widget>) {
+        let yellowpos = match active_unit_index {
+            Some(uid) => {
+                let active_unit = map.units().get(uid);
+                active_unit.reachable_pos(map.terrain(), map.units())
+            }
+            None => Vec::new(),
+        };
         let mut cell = HexCell::new();
         for pos in self.visible_cells() {
             cell.clear();
@@ -350,6 +357,9 @@ impl Screen {
                 let unit = map.units().get(unit_id);
                 let is_active = active_unit_index.is_some() && unit.id() == active_unit_index.unwrap();
                 cell.draw_unit(unit, is_active);
+            }
+            if yellowpos.contains(&pos) {
+                cell.highlight(Color::Yellow);
             }
             cell.move_(relpos);
             cell.draw_into(&mut self.term);

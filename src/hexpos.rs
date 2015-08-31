@@ -241,6 +241,7 @@ impl OffsetPos {
 pub struct PathWalker {
     origin: Pos,
     max_depth: usize,
+    backing_off: bool,
     current_path: Vec<Direction>,
 }
 
@@ -249,6 +250,7 @@ impl PathWalker {
         PathWalker {
             origin: origin,
             max_depth: max_depth,
+            backing_off: false,
             current_path: Vec::new(),
         }
     }
@@ -262,6 +264,15 @@ impl PathWalker {
             Direction::SouthWest => Some(Direction::NorthWest),
             Direction::NorthWest => None,
         }
+    }
+
+    pub fn get_current_path(&self) -> Vec<Pos> {
+        let mut result = vec![self.origin];
+        for d in self.current_path.iter() {
+            let newpos = result.last().unwrap().neighbor(*d);
+            result.push(newpos);
+        }
+        result
     }
 
     fn get_current_pos(&self) -> Pos {
@@ -293,28 +304,29 @@ impl PathWalker {
         if self.max_depth == 0 {
             None
         }
-        else if self.current_path.len() < self.max_depth {
+        else if !self.backing_off && self.current_path.len() < self.max_depth {
             self.current_path.push(Direction::North);
             Some(self.get_current_pos())
         }
         else {
-            match self.tick() {
-                Some(p) => Some(p),
-                None => self.backoff(),
+            self.backing_off = false;
+            if self.current_path.is_empty() {
+                None
+            }
+            else {
+                match self.tick() {
+                    Some(p) => Some(p),
+                    None => {
+                        self.backoff();
+                        let _ = self.current_path.pop();
+                        self.next()
+                    },
+                }
             }
         }
     }
 
-    pub fn backoff(&mut self) -> Option<Pos> {
-        let _ = self.current_path.pop();
-        if self.current_path.is_empty() {
-            None
-        }
-        else {
-            match self.tick() {
-                Some(p) => Some(p),
-                None => self.backoff(),
-            }
-        }
+    pub fn backoff(&mut self) {
+        self.backing_off = true;
     }
 }
