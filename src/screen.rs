@@ -75,6 +75,30 @@ impl HexCell {
         self.widget.set_origin((x, y));
     }
 
+    /// Highlight the cell with specified `color`.
+    ///
+    /// We proceed by setting the background color of peripherical cells. We don't highlight the
+    /// whole background because it makes the contents of the cell very hard to read. We also don't
+    /// highlight the cell's grid because of a technical problem: The upper line of the cell is
+    /// not actually made of characters, it's made of the `Underline` attribute of the above cell.
+    /// If we changed the color of that line, we would also change the color of the above cell's
+    /// lower characters.
+    pub fn highlight(&mut self, color: Color) {
+        let (cols, rows) = self.widget.size();
+        let mut doit = |x, y| {
+            let cell = self.widget.get_mut(x, y).unwrap();
+            cell.set_bg(Style::with_color(color));
+        };
+        for ix in 1..cols-1 {
+            doit(ix, 0);
+            doit(ix, rows-1);
+        }
+        for iy in 1..rows-1 {
+            doit(0, iy);
+            doit(cols-1, iy);
+        }
+    }
+
     pub fn draw_terrain(&mut self, terrain: Terrain) {
         let ch = terrain.map_char();
         let s: String = (0..5).map(|_| ch).collect();
@@ -88,6 +112,9 @@ impl HexCell {
     }
 
     pub fn draw_unit(&mut self, unit: &Unit, is_active: bool) {
+        if is_active {
+            self.highlight(Color::Blue);
+        }
         let mut cell = self.widget.get_mut(3, 2).unwrap();
         cell.set_ch(unit.map_symbol());
         let style = if unit.owner() != Player::Me {
