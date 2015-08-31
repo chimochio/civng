@@ -5,7 +5,7 @@
  * http://www.gnu.org/licenses/gpl-3.0.html
  */
 
-use hexpos::{Pos, Direction};
+use hexpos::{Pos, Direction, PathWalker};
 use unit::{Unit, Units, UnitID, Player};
 use terrain::TerrainMap;
 use combat::{CombatStats, Modifier, ModifierType};
@@ -83,8 +83,9 @@ impl LiveMap {
     fn get_flanking_modifier(&self, against_id: UnitID) -> Option<Modifier> {
         let against = self.units.get(against_id);
         let mut flank_count = 0;
-        for d in Direction::all().iter() {
-            if let Some(uid) = self.units.unit_at_pos(against.pos().neighbor(*d)) {
+        let mut walker = PathWalker::new(against.pos(), 1);
+        while let Some(p) = walker.next() {
+            if let Some(uid) = self.units.unit_at_pos(p) {
                 if self.units.get(uid).owner() != against.owner() {
                     flank_count += 1;
                 }

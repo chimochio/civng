@@ -238,3 +238,83 @@ impl OffsetPos {
     }
 }
 
+pub struct PathWalker {
+    origin: Pos,
+    max_depth: usize,
+    current_path: Vec<Direction>,
+}
+
+impl PathWalker {
+    pub fn new(origin: Pos, max_depth: usize) -> PathWalker {
+        PathWalker {
+            origin: origin,
+            max_depth: max_depth,
+            current_path: Vec::new(),
+        }
+    }
+
+    fn nextdir(dir: Direction) -> Option<Direction>{
+        match dir {
+            Direction::North => Some(Direction::NorthEast),
+            Direction::NorthEast => Some(Direction::SouthEast),
+            Direction::SouthEast => Some(Direction::South),
+            Direction::South => Some(Direction::SouthWest),
+            Direction::SouthWest => Some(Direction::NorthWest),
+            Direction::NorthWest => None,
+        }
+    }
+
+    fn get_current_pos(&self) -> Pos {
+        let mut result = self.origin;
+        for d in self.current_path.iter() {
+            result = result.neighbor(*d);
+        }
+        result
+    }
+
+    fn tick(&mut self) -> Option<Pos> {
+        if self.current_path.is_empty() {
+            return None;
+        }
+        let current = *self.current_path.last().unwrap();
+        match Self::nextdir(current) {
+            Some(d) => {
+                {
+                    let md = self.current_path.last_mut().unwrap();
+                    *md = d;
+                }
+                Some(self.get_current_pos())
+            }
+            None => None
+        }
+    }
+
+    pub fn next(&mut self) -> Option<Pos> {
+        if self.max_depth == 0 {
+            None
+        }
+        else if self.current_path.len() < self.max_depth {
+            self.current_path.push(Direction::North);
+            Some(self.get_current_pos())
+        }
+        else {
+            match self.tick() {
+                Some(p) => Some(p),
+                None => self.backoff(),
+            }
+        }
+    }
+
+    pub fn backoff(&mut self) -> Option<Pos> {
+        let _ = self.current_path.pop();
+        if self.current_path.is_empty() {
+            None
+        }
+        else {
+            match self.tick() {
+                Some(p) => Some(p),
+                None => self.backoff(),
+            }
+        }
+    }
+}
