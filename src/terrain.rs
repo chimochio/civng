@@ -18,7 +18,7 @@ use std::slice::Iter;
 
 use num::integer::Integer;
 
-use hexpos::{Pos, OffsetPos};
+use hexpos::{Pos, OffsetPos, PosPath};
 
 /// Terrain type
 ///
@@ -228,6 +228,10 @@ impl TerrainMap {
 
     pub fn tiles(&self) -> TilesIterator {
         TilesIterator::new(self.data.iter(), self.width)
+    }
+
+    pub fn movement_cost(&self, path: &PosPath) -> u8 {
+        path.stack()[1..].iter().fold(0, |acc, &p| acc + self.get_terrain(p).movement_cost())
     }
 }
 

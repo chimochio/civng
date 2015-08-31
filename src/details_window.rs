@@ -27,9 +27,8 @@ impl DetailsWindow {
         self.window.draw_into(cells);
     }
 
-    pub fn update(&mut self, active_unit_id: Option<usize>, map: &LiveMap, turn: u16, scrollmode: bool) {
+    pub fn update(&mut self, active_unit_id: Option<usize>, map: &LiveMap, turn: u16, movemode: &str) {
         let turn_line = format!("Turn {}", turn);
-        let sm_line = (if scrollmode { "Scroll Mode" } else { "" }).to_owned();
         let lines = match active_unit_id {
             Some(uid) => {
                 let unit = map.units().get(uid);
@@ -39,7 +38,7 @@ impl DetailsWindow {
                     format!("MV {} / HP {}", unit.movements(), unit.hp()),
                     terrain.name().to_owned(),
                     turn_line,
-                    sm_line,
+                    movemode.to_owned(),
                 ]
             }
             None => [
@@ -47,7 +46,7 @@ impl DetailsWindow {
                 "".to_owned(),
                 "".to_owned(),
                 turn_line,
-                sm_line,
+                movemode.to_owned(),
             ],
         };
         self.window.clear(Cell::default());

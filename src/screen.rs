@@ -7,7 +7,7 @@
 
 //! Represent hex cells *in the context of a terminal UI*.
 
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::cmp::{min, max};
 
 // Re-export for doctests
@@ -112,9 +112,6 @@ impl HexCell {
     }
 
     pub fn draw_unit(&mut self, unit: &Unit, is_active: bool) {
-        if is_active {
-            self.highlight(Color::Blue);
-        }
         let mut cell = self.widget.get_mut(3, 2).unwrap();
         cell.set_ch(unit.map_symbol());
         let style = if unit.owner() != Player::Me {
@@ -336,13 +333,18 @@ impl Screen {
     ///
     /// `map` is the terrain map we want to draw and `unitpos` is the position of the test unit
     /// we're moving around.
-    pub fn draw(&mut self, map: &LiveMap, active_unit_index: Option<usize>, popup: Option<&mut Widget>) {
+    pub fn draw(
+            &mut self,
+            map: &LiveMap,
+            active_unit_index: Option<usize>,
+            selected_pos: Option<Pos>,
+            popup: Option<&mut Widget>) {
         let yellowpos = match active_unit_index {
             Some(uid) => {
                 let active_unit = map.units().get(uid);
                 active_unit.reachable_pos(map.terrain(), map.units())
             }
-            None => Vec::new(),
+            None => HashMap::new(),
         };
         let mut cell = HexCell::new();
         for pos in self.visible_cells() {
@@ -358,7 +360,10 @@ impl Screen {
                 let is_active = active_unit_index.is_some() && unit.id() == active_unit_index.unwrap();
                 cell.draw_unit(unit, is_active);
             }
-            if yellowpos.contains(&pos) {
+            if selected_pos.is_some() && pos == selected_pos.unwrap() {
+                cell.highlight(Color::Blue)
+            }
+            else if yellowpos.contains_key(&pos) {
                 cell.highlight(Color::Yellow);
             }
             cell.move_(relpos);

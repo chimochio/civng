@@ -43,7 +43,7 @@ impl Direction {
 }
 
 /// "Cube"-type position. We simply call it `Pos` for conciseness because that's our "official" pos.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Pos {
     pub x: i32,
     pub y: i32,
@@ -238,6 +238,55 @@ impl OffsetPos {
     }
 }
 
+#[derive(Clone)]
+pub struct PosPath {
+    stack: Vec<Pos>,
+}
+
+impl PosPath {
+    pub fn new(origin: Pos) -> PosPath {
+        PosPath {
+            stack: vec![origin],
+        }
+    }
+
+    pub fn stack(&self) -> &[Pos] {
+        &self.stack[..]
+    }
+
+    pub fn from(&self) -> Pos {
+        *self.stack.first().unwrap()
+    }
+
+    pub fn to(&self) -> Pos {
+        *self.stack.last().unwrap()
+    }
+
+    pub fn steps(&self) -> usize {
+        // We don't count origin, we're already there.
+        self.stack.len() - 1
+    }
+
+    pub fn push(&mut self, pos: Pos) {
+        self.stack.push(pos);
+    }
+
+    pub fn go(&mut self, towards: Direction) {
+        let pos = self.to().neighbor(towards);
+        self.push(pos);
+    }
+
+    pub fn pop(&mut self) -> Option<Pos> {
+        // We never pop origin
+        if self.stack.len() > 1 {
+            self.stack.pop()
+        }
+        else {
+            None
+        }
+    }
+}
+
 pub struct PathWalker {
     origin: Pos,
     max_depth: usize,
@@ -266,24 +315,15 @@ impl PathWalker {
         }
     }
 
-    pub fn get_current_path(&self) -> Vec<Pos> {
-        let mut result = vec![self.origin];
+    pub fn get_current_path(&self) -> PosPath {
+        let mut result = PosPath::new(self.origin);
         for d in self.current_path.iter() {
-            let newpos = result.last().unwrap().neighbor(*d);
-            result.push(newpos);
+            result.go(*d);
         }
         result
     }
 
-    fn get_current_pos(&self) -> Pos {
-        let mut result = self.origin;
-        for d in self.current_path.iter() {
-            result = result.neighbor(*d);
-        }
-        result
-    }
-
-    fn tick(&mut self) -> Option<Pos> {
+    fn tick(&mut self) -> Option<PosPath> {
         if self.current_path.is_empty() {
             return None;
         }
@@ -294,19 +334,19 @@ impl PathWalker {
                     let md = self.current_path.last_mut().unwrap();
                     *md = d;
                 }
-                Some(self.get_current_pos())
+                Some(self.get_current_path())
             }
             None => None
         }
     }
 
-    pub fn next(&mut self) -> Option<Pos> {
+    pub fn next(&mut self) -> Option<PosPath> {
         if self.max_depth == 0 {
             None
         }
         else if !self.backing_off && self.current_path.len() < self.max_depth {
             self.current_path.push(Direction::North);
-            Some(self.get_current_pos())
+            Some(self.get_current_path())
         }
         else {
             self.backing_off = false;

@@ -7,10 +7,12 @@
 
 //! Unit management logic.
 
+use std::cmp::min;
 use std::slice::Iter;
+use std::collections::hash_map::{HashMap, Entry};
 
 use combat::CombatStats;
-use hexpos::{Pos, Direction, PathWalker};
+use hexpos::{Pos, Direction, PathWalker, PosPath};
 use terrain::{Terrain, TerrainMap};
 
 pub type UnitID = usize;
@@ -103,6 +105,11 @@ impl Unit {
         self.hp == 0
     }
 
+    pub fn move_to(&mut self, target: Pos, cost: u8) {
+        self.pos = target;
+        self.movements -= min(self.movements, cost);
+    }
+
     /// Move `self` in the specified `direction`.
     ///
     /// `terrain` being the terrain type at the specified destination. If the move is successful,
@@ -158,10 +165,12 @@ impl Unit {
         self.movements = 2;
     }
 
-    pub fn reachable_pos(&self, map: &TerrainMap, units: &Units) -> Vec<Pos> {
-        let mut result = Vec::new();
+    pub fn reachable_pos(&self, map: &TerrainMap, units: &Units) -> HashMap<Pos, PosPath> {
+        let mut result = HashMap::new();
         let mut walker = PathWalker::new(self.pos(), self.movements as usize);
-        while let Some(pos) = walker.next() {
+        while let Some(path) = walker.next() {
+            let pos = path.to();
+            let cost = map.movement_cost(&path);
             let terrain = map.get_terrain(pos);
             if terrain.is_passable() {
                 match units.unit_at_pos(pos) {
@@ -170,10 +179,19 @@ impl Unit {
                             walker.backoff();
                         }
                     },
-                    None => { result.push(pos) },
+                    None => {
+                        match result.entry(pos) {
+                            Entry::Occupied(mut e) => {
+                                // We replace the path only if the cost of the newer path is lower.
+                                let oldcost = map.movement_cost(e.get());
+                                if cost < oldcost {
+                                    e.insert(path.clone());
+                                }
+                            },
+                            Entry::Vacant(e) => { e.insert(path.clone()); },
+                        }
+                    },
                 }
-                let path = walker.get_current_path();
-                let cost = path[1..].iter().fold(0, |acc, &p| acc + map.get_terrain(p).movement_cost());
                 if cost >= self.movements {
                     walker.backoff();
                 }

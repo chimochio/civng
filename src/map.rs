@@ -85,7 +85,7 @@ impl LiveMap {
         let mut flank_count = 0;
         let mut walker = PathWalker::new(against.pos(), 1);
         while let Some(p) = walker.next() {
-            if let Some(uid) = self.units.unit_at_pos(p) {
+            if let Some(uid) = self.units.unit_at_pos(p.to()) {
                 if self.units.get(uid).owner() != against.owner() {
                     flank_count += 1;
                 }
@@ -110,6 +110,22 @@ impl LiveMap {
             result.push(m);
         }
         result
+    }
+
+    pub fn moveunit_to(&mut self, unit_id: UnitID, pos: Pos) -> bool {
+        let maybe_path = {
+            let unit = self.units.get(unit_id);
+            unit.reachable_pos(self.terrain(), self.units()).get(&pos).cloned()
+        };
+        match maybe_path {
+            Some(path) => {
+                let cost = self.terrain().movement_cost(&path);
+                let unit = self.units.get_mut(unit_id);
+                unit.move_to(path.to(), cost);
+                true
+            },
+            None => false,
+        }
     }
 
     pub fn moveunit(&mut self, unit_id: UnitID, direction: Direction) -> Option<CombatStats> {

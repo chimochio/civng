@@ -26,6 +26,17 @@ enum MainloopState {
     MessageDialog,
 }
 
+/// Mode under which the game interprets movement keypresses.
+#[derive(PartialEq)]
+enum MovementMode {
+    /// We move the active unit.
+    Normal,
+    /// We scroll the map.
+    Scroll,
+    /// We move the selected pos in the reachable range of the the active unit.
+    Move,
+}
+
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {
         'w' => Some(Direction::North),
@@ -40,11 +51,13 @@ fn direction_for_key(key: char) -> Option<Direction> {
 
 pub struct Game {
     state: MainloopState,
+    movemode: MovementMode,
     screen: Screen,
     map: LiveMap,
-    scrollmode: bool, // tmp hack
     turn: u16,
     active_unit_index: Option<UnitID>,
+    /// Selected position when in Move mode.
+    selected_pos: Pos,
     current_dialog: Option<Dialog>,
 }
 
@@ -52,14 +65,15 @@ impl Game {
     pub fn new(map_path: &Path) -> Game {
         Game {
             state: MainloopState::Normal,
+            movemode: MovementMode::Normal,
             screen: Screen::new(),
             map: {
                 let terrainmap = load_civ5map(map_path);
                 LiveMap::new(terrainmap)
             },
-            scrollmode: false,
             turn: 0,
             active_unit_index: None,
+            selected_pos: Pos::origin(),
             current_dialog: None,
         }
     }
@@ -77,10 +91,18 @@ impl Game {
         let unitpos = self.active_unit().pos();
         let terrainmap = self.map.terrain();
         self.screen.center_on_pos(unitpos, terrainmap);
+        self.selected_pos = unitpos;
     }
 
     fn update_details(&mut self) {
-        self.screen.details_window.update(self.active_unit_index, &self.map, self.turn, self.scrollmode);
+        let movemode = match self.movemode {
+            MovementMode::Scroll => "Scroll Mode",
+            MovementMode::Move => "Move Mode",
+            _ => "",
+        };
+        self.screen.details_window.update(
+            self.active_unit_index, &self.map, self.turn, movemode
+        );
     }
 
     pub fn map(&self) -> &LiveMap {
@@ -91,11 +113,26 @@ impl Game {
         self.map.add_unit(unit)
     }
 
+    // Code duplication with `moveunit()` is temporary.
+    pub fn moveunit_to(&mut self, target: Pos) -> bool {
+        if self.active_unit_index.is_none() {
+            return false;
+        }
+        let result = self.map.moveunit_to(self.active_unit_index.unwrap(), target);
+        self.selected_pos = self.active_unit().pos();
+        if self.active_unit().is_exhausted() {
+            self.cycle_active_unit();
+        }
+        self.update_details();
+        result
+    }
+
     pub fn moveunit(&mut self, direction: Direction) -> Option<CombatStats> {
         if self.active_unit_index.is_none() {
             return None;
         }
         let result = self.map.moveunit(self.active_unit_index.unwrap(), direction);
+        self.selected_pos = self.active_unit().pos();
         if self.active_unit().is_exhausted() {
             self.cycle_active_unit();
         }
@@ -115,7 +152,11 @@ impl Game {
             Some(ref mut d) => Some(d.window_mut()),
             None => None,
         };
-        self.screen.draw(&self.map, self.active_unit_index, popup);
+        let selected_pos = match self.movemode {
+            MovementMode::Move => Some(self.selected_pos),
+            _ => None,
+        };
+        self.screen.draw(&self.map, self.active_unit_index, selected_pos, popup);
     }
 
     /// Returns whether the keypress was handled by the current dialog.
@@ -161,33 +202,52 @@ impl Game {
                 self.screen.toggle_option(DisplayOption::PosMarkers);
             },
             'S' => {
-                self.scrollmode = !self.scrollmode;
+                self.movemode = if self.movemode == MovementMode::Scroll { MovementMode::Normal } else { MovementMode::Scroll };
+                self.update_details();
+            },
+            'm' => {
+                match self.movemode {
+                    MovementMode::Move => {
+                        self.movemode = MovementMode::Normal;
+                        self.selected_pos = self.active_unit().pos();
+                    },
+                    _ => {
+                        self.movemode = MovementMode::Move;
+                    },
+                }
                 self.update_details();
             },
             '\r' => {
-                self.new_turn();
+                match self.movemode {
+                    MovementMode::Move => {
+                        let target = self.selected_pos;
+                        self.moveunit_to(target);
+                        self.movemode = MovementMode::Normal;
+                        self.update_details();
+                    },
+                    _ => { self.new_turn(); },
+                }
             },
             '.' => {
                 self.cycle_active_unit();
                 self.update_details();
                 self.draw()
             },
-            k => match direction_for_key(k) {
-                Some(d) => {
-                    if self.scrollmode {
-                        self.screen.scroll(Pos::origin().neighbor(d));
-                    }
-                    else {
-                        match self.moveunit(d) {
-                            Some(ref combat_result) => {
-                                self.current_dialog = Some(create_combat_confirm_dialog(combat_result));
-                                self.state = MainloopState::CombatConfirm(combat_result.clone());
-                            }
-                            None => (),
+            k => if let Some(d) = direction_for_key(k) {
+                match self.movemode {
+                    MovementMode::Normal => {
+                        if let Some(ref combat_result) = self.moveunit(d) {
+                            self.current_dialog = Some(create_combat_confirm_dialog(combat_result));
+                            self.state = MainloopState::CombatConfirm(combat_result.clone());
                         }
-                    }
-                },
-                None => {},
+                    },
+                    MovementMode::Scroll => {
+                        self.screen.scroll(Pos::origin().neighbor(d));
+                    },
+                    MovementMode::Move => {
+                        self.selected_pos = self.selected_pos.neighbor(d);
+                    },
+                }
             },
         }
         true

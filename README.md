@@ -25,6 +25,7 @@ Very early. Features:
 * Map scrolling.
 * Turns, with limited movements in each one.
 * Active unit is colored and its reachable cells are highlighted in yellow.
+* Move mode allowing to step over friendly units.
 
 ## Requirements
 
@@ -77,7 +78,9 @@ Each unit has two movements per turn. You can cycle through active units with `.
 turn by pressing Return.
 
 The cells highlighted in yellow around the active units are cells where that unit can move this
-turn. There will soon be a "move to" feature allowing us to move past a friendly unit.
+turn. You can press `m` to active the "Move Mode" which enabled a blue cell selector. Move this
+selector around freely (it doesn't move the unit right away) and press Return when you've selected
+your destination. Press `m` again to cancel. You can't attack yet with the move mode.
 
 If you move on a tile with an enemy unit on it, you initiate a melee attack automatically. If you
 win, you move on the enemy's tile.
