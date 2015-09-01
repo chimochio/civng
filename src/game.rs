@@ -97,8 +97,11 @@ impl Game {
             MovementMode::Move => "Move Mode",
             _ => "",
         };
+        let selected_pos = self.selection.pos.unwrap_or({
+            self.active_unit().pos()
+        });
         self.screen.details_window.update(
-            self.selection.unit_id, &self.map, self.turn, movemode
+            selected_pos, &self.map, self.turn, movemode
         );
     }
 
@@ -239,6 +242,7 @@ impl Game {
                     },
                     MovementMode::Move => {
                         self.selection.pos = Some(self.selection.pos.unwrap().neighbor(d));
+                        self.update_details();
                     },
                 }
             },

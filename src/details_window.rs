@@ -8,6 +8,7 @@
 use rustty::{CellAccessor, Cell, HasSize};
 use rustty::ui::{Painter, Widget, Alignable, HorizontalAlign, VerticalAlign};
 
+use hexpos::Pos;
 use map::LiveMap;
 
 pub struct DetailsWindow {
@@ -27,28 +28,24 @@ impl DetailsWindow {
         self.window.draw_into(cells);
     }
 
-    pub fn update(&mut self, active_unit_id: Option<usize>, map: &LiveMap, turn: u16, movemode: &str) {
+    pub fn update(&mut self, selected_pos: Pos, map: &LiveMap, turn: u16, movemode: &str) {
         let turn_line = format!("Turn {}", turn);
-        let lines = match active_unit_id {
-            Some(uid) => {
-                let unit = map.units().get(uid);
-                let terrain = map.terrain().get_terrain(unit.pos());
-                [
-                    unit.name().to_owned(),
-                    format!("MV {} / HP {}", unit.movements(), unit.hp()),
-                    terrain.name().to_owned(),
-                    turn_line,
-                    movemode.to_owned(),
-                ]
-            }
-            None => [
-                "".to_owned(),
-                "".to_owned(),
-                "".to_owned(),
-                turn_line,
-                movemode.to_owned(),
-            ],
+        let terrain = map.terrain().get_terrain(selected_pos);
+        let unit_id = map.units().unit_at_pos(selected_pos);
+        let (unit_name, unit_stats) = if let Some(uid) = unit_id {
+            let unit = map.units().get(uid);
+            (unit.name(), format!("MV {} / HP {}", unit.movements(), unit.hp()))
+        }
+        else {
+            ("", "".to_owned())
         };
+        let lines = [
+            unit_name,
+            &unit_stats[..],
+            terrain.name(),
+            &turn_line[..],
+            movemode,
+        ];
         self.window.clear(Cell::default());
         for (index, line) in lines.iter().enumerate() {
             self.window.printline(2, index+1, line);
