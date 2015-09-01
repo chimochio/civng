@@ -20,6 +20,7 @@ use terrain::{Terrain, TerrainMap};
 use map::LiveMap;
 use unit::{Unit, Player};
 use details_window::DetailsWindow;
+use selection::Selection;
 
 const CELL_WIDTH: usize = 7;
 const CELL_HEIGHT: usize = 4;
@@ -336,10 +337,9 @@ impl Screen {
     pub fn draw(
             &mut self,
             map: &LiveMap,
-            active_unit_index: Option<usize>,
-            selected_pos: Option<Pos>,
+            selection: &Selection,
             popup: Option<&mut Widget>) {
-        let yellowpos = match active_unit_index {
+        let yellowpos = match selection.unit_id {
             Some(uid) => {
                 let active_unit = map.units().get(uid);
                 active_unit.reachable_pos(map.terrain(), map.units())
@@ -357,10 +357,10 @@ impl Screen {
             cell.draw_terrain(terrain);
             if let Some(unit_id) = map.units().unit_at_pos(pos) {
                 let unit = map.units().get(unit_id);
-                let is_active = active_unit_index.is_some() && unit.id() == active_unit_index.unwrap();
+                let is_active = selection.is_unit_active(unit.id());
                 cell.draw_unit(unit, is_active);
             }
-            if selected_pos.is_some() && pos == selected_pos.unwrap() {
+            if selection.pos.is_some() && pos == selection.pos.unwrap() {
                 cell.highlight(Color::Blue)
             }
             else if yellowpos.contains_key(&pos) {

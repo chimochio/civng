@@ -29,6 +29,7 @@ pub mod unit;
 pub mod combat;
 pub mod screen;
 pub mod civ5map;
+pub mod selection;
 pub mod game;
 pub mod details_window;
 pub mod combat_confirm_dialog;

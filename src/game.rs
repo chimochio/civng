@@ -11,13 +11,14 @@ use rustty::{Event, CellAccessor};
 use rustty::ui::{Dialog, DialogResult};
 
 use hexpos::{Pos, Direction};
-use unit::{Unit, UnitID};
+use unit::{Unit};
 use screen::{Screen, DisplayOption};
 use civ5map::load_civ5map;
 use map::LiveMap;
 use combat::CombatStats;
 use combat_result_window::create_combat_result_dialog;
 use combat_confirm_dialog::create_combat_confirm_dialog;
+use selection::Selection;
 
 #[derive(Clone)]
 enum MainloopState {
@@ -55,9 +56,7 @@ pub struct Game {
     screen: Screen,
     map: LiveMap,
     turn: u16,
-    active_unit_index: Option<UnitID>,
-    /// Selected position when in Move mode.
-    selected_pos: Pos,
+    selection: Selection,
     current_dialog: Option<Dialog>,
 }
 
@@ -72,26 +71,24 @@ impl Game {
                 LiveMap::new(terrainmap)
             },
             turn: 0,
-            active_unit_index: None,
-            selected_pos: Pos::origin(),
+            selection: Selection::new(),
             current_dialog: None,
         }
     }
 
     fn active_unit(&self) -> &Unit {
-        &self.map.units().get(self.active_unit_index.unwrap_or(0))
+        &self.map.units().get(self.selection.unit_id.unwrap_or(0))
     }
 
     fn cycle_active_unit(&mut self) {
-        let active_index = match self.active_unit_index {
+        let active_index = match self.selection.unit_id {
             Some(active_index) => active_index,
             None => self.map.units().max_id() + 1,
         };
-        self.active_unit_index = self.map.units().next_active_unit(active_index);
+        self.selection.unit_id = self.map.units().next_active_unit(active_index);
         let unitpos = self.active_unit().pos();
         let terrainmap = self.map.terrain();
         self.screen.center_on_pos(unitpos, terrainmap);
-        self.selected_pos = unitpos;
     }
 
     fn update_details(&mut self) {
@@ -101,7 +98,7 @@ impl Game {
             _ => "",
         };
         self.screen.details_window.update(
-            self.active_unit_index, &self.map, self.turn, movemode
+            self.selection.unit_id, &self.map, self.turn, movemode
         );
     }
 
@@ -115,11 +112,10 @@ impl Game {
 
     // Code duplication with `moveunit()` is temporary.
     pub fn moveunit_to(&mut self, target: Pos) -> bool {
-        if self.active_unit_index.is_none() {
+        if self.selection.unit_id.is_none() {
             return false;
         }
-        let result = self.map.moveunit_to(self.active_unit_index.unwrap(), target);
-        self.selected_pos = self.active_unit().pos();
+        let result = self.map.moveunit_to(self.selection.unit_id.unwrap(), target);
         if self.active_unit().is_exhausted() {
             self.cycle_active_unit();
         }
@@ -128,11 +124,10 @@ impl Game {
     }
 
     pub fn moveunit(&mut self, direction: Direction) -> Option<CombatStats> {
-        if self.active_unit_index.is_none() {
+        if self.selection.unit_id.is_none() {
             return None;
         }
-        let result = self.map.moveunit(self.active_unit_index.unwrap(), direction);
-        self.selected_pos = self.active_unit().pos();
+        let result = self.map.moveunit(self.selection.unit_id.unwrap(), direction);
         if self.active_unit().is_exhausted() {
             self.cycle_active_unit();
         }
@@ -152,11 +147,7 @@ impl Game {
             Some(ref mut d) => Some(d.window_mut()),
             None => None,
         };
-        let selected_pos = match self.movemode {
-            MovementMode::Move => Some(self.selected_pos),
-            _ => None,
-        };
-        self.screen.draw(&self.map, self.active_unit_index, selected_pos, popup);
+        self.screen.draw(&self.map, &self.selection, popup);
     }
 
     /// Returns whether the keypress was handled by the current dialog.
@@ -209,10 +200,11 @@ impl Game {
                 match self.movemode {
                     MovementMode::Move => {
                         self.movemode = MovementMode::Normal;
-                        self.selected_pos = self.active_unit().pos();
+                        self.selection.pos = None;
                     },
                     _ => {
                         self.movemode = MovementMode::Move;
+                        self.selection.pos = Some(self.active_unit().pos());
                     },
                 }
                 self.update_details();
@@ -220,9 +212,10 @@ impl Game {
             '\r' => {
                 match self.movemode {
                     MovementMode::Move => {
-                        let target = self.selected_pos;
+                        let target = self.selection.pos.unwrap();
                         self.moveunit_to(target);
                         self.movemode = MovementMode::Normal;
+                        self.selection.pos = None;
                         self.update_details();
                     },
                     _ => { self.new_turn(); },
@@ -245,7 +238,7 @@ impl Game {
                         self.screen.scroll(Pos::origin().neighbor(d));
                     },
                     MovementMode::Move => {
-                        self.selected_pos = self.selected_pos.neighbor(d);
+                        self.selection.pos = Some(self.selection.pos.unwrap().neighbor(d));
                     },
                 }
             },
