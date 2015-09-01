@@ -10,6 +10,8 @@
 use std::collections::{HashSet, HashMap};
 use std::cmp::{min, max};
 
+use num::integer::Integer;
+
 // Re-export for doctests
 pub use rustty::{Terminal, CellAccessor, HasPosition, HasSize, Cell, Style, Attr, Color};
 use rustty::Pos as ScreenPos;
@@ -156,17 +158,24 @@ impl Iterator for VisiblePosIterator {
     fn next(&mut self) -> Option<Pos> {
         let rpos = self.current.translate(self.origin.neg());
         let (spx, spy) = get_screenpos(rpos);
-        if spy < self.screen_rows && spx < self.screen_cols {
+        // cols -2 because of the overhead of the wavy lines. Without this overhead counting, we
+        // get incomplete borders.
+        if spx + CELL_WIDTH <= self.screen_cols - 2 {
             let result = self.current;
             self.current = self.current.neighbor(self.direction);
             self.direction = if self.direction == Direction::SouthEast { Direction::NorthEast } else { Direction:: SouthEast };
+            if spy + CELL_HEIGHT > self.screen_rows {
+                // We're on the last line and half the cells are going to be invisible. Still,
+                // carry on...
+                return self.next();
+            }
             Some(result)
         }
         else {
             self.leftmost = self.leftmost.neighbor(Direction::South);
             let rpos = self.leftmost.translate(self.origin.neg());
-            let (spx, spy) = get_screenpos(rpos);
-            if spy < self.screen_rows && spx < self.screen_cols {
+            let (_, spy) = get_screenpos(rpos);
+            if spy + CELL_HEIGHT <= self.screen_rows {
                 self.current = self.leftmost;
                 self.direction = Direction::SouthEast;
                 Some(self.current)
@@ -193,6 +202,8 @@ pub struct Screen {
     options: HashSet<DisplayOption>,
     /// Cell at the top-left corner of the screen
     topleft: Pos,
+    /// Size of the map during the last draw call.
+    map_size: (i32, i32),
     pub details_window: DetailsWindow,
 }
 
@@ -204,6 +215,7 @@ impl Screen {
             term: term,
             options: HashSet::new(),
             topleft: Pos::origin(),
+            map_size: (0, 0),
             details_window: details_window,
         }
     }
@@ -211,7 +223,9 @@ impl Screen {
     /// Size of the terminal in number of hex cells that fits in it.
     pub fn size_in_cells(&self) -> (usize, usize) {
         let (cols, rows) = self.term.size();
-        (cols / CELL_WIDTH, rows / CELL_HEIGHT)
+        // cols -2 because of the overhead of the wavy lines. Without this overhead counting, we
+        // get incomplete borders.
+        ((cols - 2)/ CELL_WIDTH, rows / CELL_HEIGHT)
     }
 
     fn relpos(&self, pos: Pos) -> Pos {
@@ -231,6 +245,17 @@ impl Screen {
         }
     }
 
+    pub fn scroll_to(&mut self, topleft: Pos) {
+        let mut opos = topleft.to_offset_pos();
+        let (screenw, screenh) = self.size_in_cells();
+        let (mapw, maph) = self.map_size;
+        opos.y = min(opos.y, maph - screenh as i32);
+        opos.x = min(opos.x, mapw - screenw as i32);
+        opos.y = max(opos.y, 0);
+        opos.x = max(opos.x, 0);
+        self.topleft = opos.to_pos();
+    }
+
     /// Scrolls the visible part of the map by `by`.
     ///
     /// # Examples
@@ -244,7 +269,8 @@ impl Screen {
     /// screen.scroll(Pos::vector(Direction::SouthEast).amplify(3));
     /// ```
     pub fn scroll(&mut self, by: Pos) {
-        self.topleft = self.topleft.translate(by);
+        let target = self.topleft.translate(by);
+        self.scroll_to(target);
     }
 
     /// Scrolls visible part of the map so that `pos` is at the center of the screen.
@@ -276,7 +302,7 @@ impl Screen {
         let opos = pos.to_offset_pos();
         let target_x = max(min(opos.x - target_dx, max_x), 0);
         let target_y = max(min(opos.y - target_dy, max_y), 0);
-        self.topleft = OffsetPos::new(target_x, target_y).to_pos();
+        self.scroll_to(OffsetPos::new(target_x, target_y).to_pos());
     }
 
     fn visible_cells(&self) -> VisiblePosIterator {
@@ -286,32 +312,46 @@ impl Screen {
     /// Fills the screen with a hex grid.
     fn drawgrid(&mut self) {
         //  ╱     ╲
-        // ╱       ╲_____
+        // ╱       ╲
         // ╲       ╱
         //  ╲_____╱
-        const SPAN_X: usize = 14;
-        const SPAN_Y: usize = 4;
+        let otopleft = self.topleft.to_offset_pos();
+        let is_oddx = otopleft.x.div_rem(&2).1 == 1;
+        let (mapw, maph) = self.map_size;
         let chars = [
-            ('╱', 1, 0),
-            ('╲', 7, 0),
-            ('╱', 0, 1),
-            ('╲', 8, 1),
-            ('╲', 0, 2),
-            ('╱', 8, 2),
-            ('╲', 1, 3),
-            ('╱', 7, 3),
+            ('╱', 1),
+            ('╱', 0),
+            ('╲', 0),
+            ('╲', 1),
         ];
-        // +1 because we want the rightmost part of the grid to be there even if incomplete
-        let rowrepeatcount = (self.term.rows() / SPAN_Y) + 1;
-        let colrepeatcount = (self.term.cols() / SPAN_X) + 1;
-        for rowrepeat in 0..rowrepeatcount {
-            let basey = rowrepeat * SPAN_Y;
-            for colrepeat in 0..colrepeatcount {
-                let basex = colrepeat * SPAN_X;
-                for &(ch, offset_x, offset_y) in chars.iter() {
-                    if let Some(cell) = self.term.get_mut(basex + offset_x, basey + offset_y) {
-                        cell.set_ch(ch);
+        let (screenx, screeny) = self.size_in_cells();
+        let is_at_top = otopleft.y == 0 && !is_oddx;
+        let is_at_bottom = otopleft.y + screeny as i32 >= maph;
+        let is_at_left = otopleft.x == 0;
+        let is_at_right = otopleft.x + screenx as i32 >= mapw;
+        // +1 because we want to close the last cell by drawing its right border, not only its
+        // left one.
+        for colrepeat in 0..screenx+1 {
+            let basex = colrepeat * CELL_WIDTH;
+            let skipcount = if colrepeat.div_rem(&2).1 == 1 { 2 } else { 0 };
+            let mut takecount = screeny * CELL_HEIGHT + 2;
+            if colrepeat == 0 || (is_at_bottom && is_oddx) {
+                // The colrepeat==0  gives us a "rounded" corner.
+                // The bottom check ensures that we don't draw out of bounds cells, which can
+                // happen if we scroll to the bottom and have an odd topleft.
+                takecount -= 2;
+            }
+            let char_iter = chars.iter().cycle().skip(skipcount).enumerate();
+            for (y, &(ch, offset_x)) in char_iter.take(takecount) {
+                if let Some(cell) = self.term.get_mut(basex + offset_x, y) {
+                    let top_limit = is_at_top && y < 2;
+                    let bottom_limit = colrepeat > 0 && is_at_bottom && y >= takecount - 2;
+                    let left_limit = is_at_left && colrepeat == 0;
+                    let right_limit = is_at_right && colrepeat == screenx;
+                    if top_limit || bottom_limit || left_limit || right_limit {
+                        cell.set_fg(Style::with_color(Color::Red));
                     }
+                    cell.set_ch(ch);
                 }
             }
         }
@@ -319,12 +359,13 @@ impl Screen {
         // line on the top of the screen because the upper hex cells that only draw their bottom
         // parts are not drawn at all (and it's the "contents" part of the cell that is responsible
         // to draw the horizontal line, not drawgrid()). We compensate here.
-        for colrepeat in 0..colrepeatcount {
-            // +9 because we start at the edge of the hex cell we've just drawn
-            let basex = colrepeat * SPAN_X + 9;
-            for i in 0..5 {
-                if let Some(cell) = self.term.get_mut(basex + i, 1) {
-                    cell.set_fg(Style::with_attr(Attr::Underline));
+        for colrepeat in 0..screenx {
+            if colrepeat.div_rem(&2).1 == 1 {
+                let basex = colrepeat * CELL_WIDTH + 2;
+                for i in 0..5 {
+                    if let Some(cell) = self.term.get_mut(basex + i, 1) {
+                        cell.set_fg(Style::with_attr(Attr::Underline));
+                    }
                 }
             }
         }
@@ -339,6 +380,8 @@ impl Screen {
             map: &LiveMap,
             selection: &Selection,
             popup: Option<&mut Widget>) {
+        let _ = self.term.clear();
+        self.map_size = map.terrain().size();
         let yellowpos = match selection.unit_id {
             Some(uid) => {
                 let active_unit = map.units().get(uid);
@@ -349,11 +392,15 @@ impl Screen {
         let mut cell = HexCell::new();
         for pos in self.visible_cells() {
             cell.clear();
+            let terrain = map.terrain().get_terrain(pos);
+            // Can happen if out top left has a odd x and that we're at the bottom of the map.
+            if terrain == Terrain::OutOfBounds {
+                continue;
+            }
             let relpos = self.relpos(pos);
             if self.has_option(DisplayOption::PosMarkers) {
                 cell.draw_posmarker(pos.to_offset_pos());
             }
-            let terrain = map.terrain().get_terrain(pos);
             cell.draw_terrain(terrain);
             if let Some(unit_id) = map.units().unit_at_pos(pos) {
                 let unit = map.units().get(unit_id);

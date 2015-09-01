@@ -90,7 +90,8 @@ Water `~` and mountains `A` are impassable. Hills `^` use up 2 movement points.
 You can toggle position markers (mostly for debugging purposes) with `shift-p`.
 
 You can scroll the map! To do so, press `shift-s` to toggle scroll mode. Now, when you press
-movement keys, it's the map that will scroll instead of the active unit.
+movement keys, it's the map that will scroll instead of the active unit. When you reach limits of
+the map, you'll see red borders. That's when you can't scroll any further.
 
 `shift-q` to quit.
 

@@ -23,7 +23,7 @@ use hexpos::{Pos, OffsetPos, PosPath};
 /// Terrain type
 ///
 /// Each tile in civng has a terrain type, which is represented by this structure.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Terrain {
     Plain,
     Grassland,
