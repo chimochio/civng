@@ -9,11 +9,10 @@
 
 use std::cmp::min;
 use std::slice::Iter;
-use std::collections::hash_map::{HashMap, Entry};
 
 use combat::CombatStats;
-use hexpos::{Pos, Direction, PathWalker, PosPath};
-use terrain::{Terrain, TerrainMap};
+use hexpos::{Pos, Direction};
+use terrain::Terrain;
 
 pub type UnitID = usize;
 
@@ -165,43 +164,6 @@ impl Unit {
         self.movements = 2;
     }
 
-    pub fn reachable_pos(&self, map: &TerrainMap, units: &Units) -> HashMap<Pos, PosPath> {
-        let mut result = HashMap::new();
-        let mut walker = PathWalker::new(self.pos(), self.movements as usize);
-        while let Some(path) = walker.next() {
-            let pos = path.to();
-            let cost = map.movement_cost(&path);
-            let terrain = map.get_terrain(pos);
-            if terrain.is_passable() {
-                match units.unit_at_pos(pos) {
-                    Some(uid) => {
-                        if units.get(uid).owner() != self.owner() {
-                            walker.backoff();
-                        }
-                    },
-                    None => {
-                        match result.entry(pos) {
-                            Entry::Occupied(mut e) => {
-                                // We replace the path only if the cost of the newer path is lower.
-                                let oldcost = map.movement_cost(e.get());
-                                if cost < oldcost {
-                                    e.insert(path.clone());
-                                }
-                            },
-                            Entry::Vacant(e) => { e.insert(path.clone()); },
-                        }
-                    },
-                }
-                if cost >= self.movements {
-                    walker.backoff();
-                }
-            }
-            else {
-                walker.backoff();
-            }
-        }
-        result
-    }
 }
 
 pub struct Units {
@@ -285,6 +247,14 @@ impl Units {
         &mut self.units[unit_id]
     }
 
+    pub fn get_at_pos(&self, pos: Pos) -> Option<&Unit> {
+        if let Some(uid) = self.unit_at_pos(pos) {
+            Some(self.get(uid))
+        }
+        else {
+            None
+        }
+    }
 }
 
 pub struct UnitsIterator<'a> {

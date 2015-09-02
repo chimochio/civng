@@ -262,6 +262,16 @@ impl PosPath {
         *self.stack.last().unwrap()
     }
 
+    /// Returns the position before the last in the path.
+    pub fn before_last(&self) -> Option<Pos> {
+        if self.stack.len() > 1 {
+            Some(self.stack[self.stack.len()-2])
+        }
+        else {
+            None
+        }
+    }
+
     pub fn steps(&self) -> usize {
         // We don't count origin, we're already there.
         self.stack.len() - 1

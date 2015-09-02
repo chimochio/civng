@@ -382,10 +382,9 @@ impl Screen {
             popup: Option<&mut Widget>) {
         let _ = self.term.clear();
         self.map_size = map.terrain().size();
-        let yellowpos = match selection.unit_id {
+        let reachablepos = match selection.unit_id {
             Some(uid) => {
-                let active_unit = map.units().get(uid);
-                active_unit.reachable_pos(map.terrain(), map.units())
+                map.reachable_pos(uid)
             }
             None => HashMap::new(),
         };
@@ -410,8 +409,14 @@ impl Screen {
             if selection.pos.is_some() && pos == selection.pos.unwrap() {
                 cell.highlight(Color::Blue)
             }
-            else if yellowpos.contains_key(&pos) {
-                cell.highlight(Color::Yellow);
+            else if reachablepos.contains_key(&pos) {
+                let mut color = Color::Yellow;
+                if let Some(u) = map.units().get_at_pos(pos) {
+                    if u.owner() != Player::Me {
+                        color = Color::Red;
+                    }
+                }
+                cell.highlight(color);
             }
             cell.move_(relpos);
             cell.draw_into(&mut self.term);

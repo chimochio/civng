@@ -114,9 +114,9 @@ impl Game {
     }
 
     // Code duplication with `moveunit()` is temporary.
-    pub fn moveunit_to(&mut self, target: Pos) -> bool {
+    pub fn moveunit_to(&mut self, target: Pos) -> Option<CombatStats> {
         if self.selection.unit_id.is_none() {
-            return false;
+            return None;
         }
         let result = self.map.moveunit_to(self.selection.unit_id.unwrap(), target);
         if self.active_unit().is_exhausted() {
@@ -130,12 +130,8 @@ impl Game {
         if self.selection.unit_id.is_none() {
             return None;
         }
-        let result = self.map.moveunit(self.selection.unit_id.unwrap(), direction);
-        if self.active_unit().is_exhausted() {
-            self.cycle_active_unit();
-        }
-        self.update_details();
-        result
+        let newpos = self.active_unit().pos().neighbor(direction);
+        self.moveunit_to(newpos)
     }
 
     pub fn new_turn(&mut self) {
@@ -216,7 +212,10 @@ impl Game {
                 match self.movemode {
                     MovementMode::Move => {
                         let target = self.selection.pos.unwrap();
-                        self.moveunit_to(target);
+                        if let Some(ref combat_result) = self.moveunit_to(target) {
+                            self.current_dialog = Some(create_combat_confirm_dialog(combat_result));
+                            self.state = MainloopState::CombatConfirm(combat_result.clone());
+                        }
                         self.movemode = MovementMode::Normal;
                         self.selection.pos = None;
                         self.update_details();
