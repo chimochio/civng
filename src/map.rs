@@ -247,7 +247,7 @@ impl LivePath {
                 false
             }
             else { // attack
-                // only reachable is the pos before last is empty *or* if it's our mover
+                // only reachable if the pos before last is empty *or* if it's our mover
                 self.units[self.units.len()-2].is_none() || self.path.steps() == 1
             }
         }

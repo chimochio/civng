@@ -17,7 +17,7 @@ pub use rustty::{Terminal, CellAccessor, HasPosition, HasSize, Cell, Style, Attr
 use rustty::Pos as ScreenPos;
 use rustty::ui::{Painter, Alignable, HorizontalAlign, VerticalAlign, Widget};
 
-use hexpos::{Pos, Direction, OffsetPos};
+use hexpos::{Pos, OffsetPos};
 use terrain::{Terrain, TerrainMap};
 use map::LiveMap;
 use unit::{Unit, Player};
@@ -29,6 +29,15 @@ const CELL_HEIGHT: usize = 4;
 // See diagram in HexCell's comment to understand why we have this offset.
 const CELL_OFFSET_X: usize = 1;
 const CELL_OFFSET_Y: usize = 0;
+
+/// Size of the terminal in number of hex cells that fits in it.
+fn size_in_cells(term: &Terminal) -> (usize, usize) {
+    let (cols, rows) = term.size();
+    // cols -2 because of the overhead of the wavy lines. Without this overhead counting, we
+    // get incomplete borders.
+    // rows -2 also because of wavy cell placement overhead
+    ((cols - 2)/ CELL_WIDTH, (rows - 2) / CELL_HEIGHT)
+}
 
 /// Returns the position of `pos` on the screen
 ///
@@ -54,15 +63,23 @@ fn get_screenpos(pos: Pos) -> ScreenPos {
  * Don't put contents in corners, you'll conflict with grid lines.
  */
 struct HexCell {
+    pos: Pos,
     widget: Widget,
 }
 
 impl HexCell {
-    pub fn new() -> HexCell {
-        let widget = Widget::new(CELL_WIDTH, CELL_HEIGHT);
+    pub fn new(pos: Pos) -> HexCell {
+        let mut widget = Widget::new(CELL_WIDTH, CELL_HEIGHT);
+        let (x, y) = get_screenpos(pos);
+        widget.set_origin((x, y));
         HexCell {
+            pos: pos,
             widget: widget,
         }
+    }
+
+    pub fn pos(&self) -> Pos {
+        self.pos
     }
 
     pub fn clear(&mut self) {
@@ -71,11 +88,6 @@ impl HexCell {
 
     pub fn draw_into(&self, cells: &mut CellAccessor) {
         self.widget.draw_into(cells);
-    }
-
-    pub fn move_(&mut self, pos: Pos) {
-        let (x, y) = get_screenpos(pos);
-        self.widget.set_origin((x, y));
     }
 
     /// Highlight the cell with specified `color`.
@@ -130,63 +142,6 @@ impl HexCell {
     }
 }
 
-struct VisiblePosIterator {
-    screen_cols: usize,
-    screen_rows: usize,
-    origin: Pos,
-    leftmost: Pos,
-    current: Pos,
-    direction: Direction,
-}
-
-impl VisiblePosIterator {
-    fn new(topleft: Pos, screen_cols: usize, screen_rows: usize) -> VisiblePosIterator {
-        VisiblePosIterator{
-            screen_cols: screen_cols,
-            screen_rows: screen_rows,
-            origin: topleft,
-            leftmost: topleft,
-            current: topleft,
-            direction: Direction::SouthEast,
-        }
-    }
-}
-
-impl Iterator for VisiblePosIterator {
-    type Item = Pos;
-
-    fn next(&mut self) -> Option<Pos> {
-        let rpos = self.current.translate(self.origin.neg());
-        let (spx, spy) = get_screenpos(rpos);
-        // cols -2 because of the overhead of the wavy lines. Without this overhead counting, we
-        // get incomplete borders.
-        if spx + CELL_WIDTH <= self.screen_cols - 2 {
-            let result = self.current;
-            self.current = self.current.neighbor(self.direction);
-            self.direction = if self.direction == Direction::SouthEast { Direction::NorthEast } else { Direction:: SouthEast };
-            if spy + CELL_HEIGHT > self.screen_rows {
-                // We're on the last line and half the cells are going to be invisible. Still,
-                // carry on...
-                return self.next();
-            }
-            Some(result)
-        }
-        else {
-            self.leftmost = self.leftmost.neighbor(Direction::South);
-            let rpos = self.leftmost.translate(self.origin.neg());
-            let (_, spy) = get_screenpos(rpos);
-            if spy + CELL_HEIGHT <= self.screen_rows {
-                self.current = self.leftmost;
-                self.direction = Direction::SouthEast;
-                Some(self.current)
-            }
-            else {
-                None
-            }
-        }
-    }
-}
-
 /// Various display options that can be enabled in `Screen`.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DisplayOption {
@@ -199,6 +154,7 @@ pub enum DisplayOption {
 /// go through this struct.
 pub struct Screen {
     pub term: Terminal,
+    cells: Vec<HexCell>,
     options: HashSet<DisplayOption>,
     /// Cell at the top-left corner of the screen
     topleft: Pos,
@@ -211,25 +167,22 @@ impl Screen {
     pub fn new() -> Screen {
         let term = Terminal::new().unwrap();
         let details_window = DetailsWindow::new(&term);
+        let (screenw, screenh) = size_in_cells(&term);
+        let mut cells = Vec::new();
+        for iy in 0..screenh {
+            for ix in 0..screenw {
+                let pos = OffsetPos::new(ix as i32, iy as i32).to_pos();
+                cells.push(HexCell::new(pos));
+            }
+        }
         Screen {
             term: term,
+            cells: cells,
             options: HashSet::new(),
             topleft: Pos::origin(),
             map_size: (0, 0),
             details_window: details_window,
         }
-    }
-
-    /// Size of the terminal in number of hex cells that fits in it.
-    pub fn size_in_cells(&self) -> (usize, usize) {
-        let (cols, rows) = self.term.size();
-        // cols -2 because of the overhead of the wavy lines. Without this overhead counting, we
-        // get incomplete borders.
-        ((cols - 2)/ CELL_WIDTH, rows / CELL_HEIGHT)
-    }
-
-    fn relpos(&self, pos: Pos) -> Pos {
-        pos.translate(self.topleft.neg())
     }
 
     pub fn has_option(&self, option:DisplayOption) -> bool {
@@ -247,7 +200,7 @@ impl Screen {
 
     pub fn scroll_to(&mut self, topleft: Pos) {
         let mut opos = topleft.to_offset_pos();
-        let (screenw, screenh) = self.size_in_cells();
+        let (screenw, screenh) = size_in_cells(&self.term);
         let (mapw, maph) = self.map_size;
         opos.y = min(opos.y, maph - screenh as i32);
         opos.x = min(opos.x, mapw - screenw as i32);
@@ -293,7 +246,7 @@ impl Screen {
     /// screen.center_on_pos(pos, &map);
     /// ```
     pub fn center_on_pos(&mut self, pos: Pos, map: &TerrainMap) {
-        let (width, height) = self.size_in_cells();
+        let (width, height) = size_in_cells(&self.term);
         let (map_width, map_height) = map.size();
         let max_x = map_width - width as i32;
         let max_y = map_height - height as i32;
@@ -303,10 +256,6 @@ impl Screen {
         let target_x = max(min(opos.x - target_dx, max_x), 0);
         let target_y = max(min(opos.y - target_dy, max_y), 0);
         self.scroll_to(OffsetPos::new(target_x, target_y).to_pos());
-    }
-
-    fn visible_cells(&self) -> VisiblePosIterator {
-        VisiblePosIterator::new(self.topleft, self.term.cols(), self.term.rows())
     }
 
     /// Fills the screen with a hex grid.
@@ -324,7 +273,7 @@ impl Screen {
             ('╲', 0),
             ('╲', 1),
         ];
-        let (screenx, screeny) = self.size_in_cells();
+        let (screenx, screeny) = size_in_cells(&self.term);
         let is_at_top = otopleft.y == 0 && !is_oddx;
         let is_at_bottom = otopleft.y + screeny as i32 >= maph;
         let is_at_left = otopleft.x == 0;
@@ -388,16 +337,16 @@ impl Screen {
             }
             None => HashMap::new(),
         };
-        let mut cell = HexCell::new();
-        for pos in self.visible_cells() {
+        let with_posmarkers = self.has_option(DisplayOption::PosMarkers);
+        for cell in self.cells.iter_mut() {
+            let pos = cell.pos().translate(self.topleft);
             cell.clear();
             let terrain = map.terrain().get_terrain(pos);
             // Can happen if out top left has a odd x and that we're at the bottom of the map.
             if terrain == Terrain::OutOfBounds {
                 continue;
             }
-            let relpos = self.relpos(pos);
-            if self.has_option(DisplayOption::PosMarkers) {
+            if with_posmarkers {
                 cell.draw_posmarker(pos.to_offset_pos());
             }
             cell.draw_terrain(terrain);
@@ -418,7 +367,6 @@ impl Screen {
                 }
                 cell.highlight(color);
             }
-            cell.move_(relpos);
             cell.draw_into(&mut self.term);
         }
         self.drawgrid();
