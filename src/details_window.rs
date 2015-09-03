@@ -28,11 +28,13 @@ impl DetailsWindow {
         self.window.draw_into(cells);
     }
 
-    pub fn update(&mut self, selected_pos: Pos, map: &LiveMap, turn: u16, movemode: &str) {
+    pub fn update(&mut self, selected_pos: Option<Pos>, map: &LiveMap, turn: u16, movemode: &str) {
         let turn_line = format!("Turn {}", turn);
-        let terrain = map.terrain().get_terrain(selected_pos);
-        let unit_id = map.units().unit_at_pos(selected_pos);
-        let (unit_name, unit_stats) = if let Some(uid) = unit_id {
+        let (terrain_name, maybe_unit_id) = match selected_pos {
+            Some(pos) => (map.terrain().get_terrain(pos).name().to_owned(), map.units().unit_at_pos(pos)),
+            None => ("".to_owned(), None)
+        };
+        let (unit_name, unit_stats) = if let Some(uid) = maybe_unit_id {
             let unit = map.units().get(uid);
             (unit.name(), format!("MV {} / HP {}", unit.movements(), unit.hp()))
         }
@@ -42,7 +44,7 @@ impl DetailsWindow {
         let lines = [
             unit_name,
             &unit_stats[..],
-            terrain.name(),
+            &terrain_name[..],
             &turn_line[..],
             movemode,
         ];

@@ -76,8 +76,8 @@ impl Game {
         }
     }
 
-    fn active_unit(&self) -> &Unit {
-        &self.map.units().get(self.selection.unit_id.unwrap_or(0))
+    fn active_unit(&self) -> Option<&Unit> {
+        self.selection.unit_id.map(|uid| self.map.units().get(uid))
     }
 
     fn cycle_active_unit(&mut self) {
@@ -86,9 +86,10 @@ impl Game {
             None => self.map.units().max_id() + 1,
         };
         self.selection.unit_id = self.map.units().next_active_unit(active_index);
-        let unitpos = self.active_unit().pos();
-        let terrainmap = self.map.terrain();
-        self.screen.center_on_pos(unitpos, terrainmap);
+        if let Some(unitpos) = self.active_unit().map(|u| u.pos()) {
+            let terrainmap = self.map.terrain();
+            self.screen.center_on_pos(unitpos, terrainmap);
+        }
     }
 
     fn update_details(&mut self) {
@@ -97,9 +98,7 @@ impl Game {
             MovementMode::Move => "Move Mode",
             _ => "",
         };
-        let selected_pos = self.selection.pos.unwrap_or({
-            self.active_unit().pos()
-        });
+        let selected_pos = self.selection.pos.or(self.active_unit().map(|u| u.pos()));
         self.screen.details_window.update(
             selected_pos, &self.map, self.turn, movemode
         );
@@ -109,7 +108,7 @@ impl Game {
         &self.map
     }
 
-    pub fn add_unit(&mut self, unit: Unit) -> &mut Unit {
+    pub fn add_unit(&mut self, unit: Unit) {
         self.map.add_unit(unit)
     }
 
@@ -119,7 +118,7 @@ impl Game {
             return None;
         }
         let result = self.map.moveunit_to(self.selection.unit_id.unwrap(), target);
-        if self.active_unit().is_exhausted() {
+        if self.active_unit().unwrap().is_exhausted() {
             self.cycle_active_unit();
         }
         self.update_details();
@@ -127,11 +126,10 @@ impl Game {
     }
 
     pub fn moveunit(&mut self, direction: Direction) -> Option<CombatStats> {
-        if self.selection.unit_id.is_none() {
-            return None;
+        match self.active_unit().map(|u| u.pos().neighbor(direction)) {
+            Some(newpos) => self.moveunit_to(newpos),
+            None => None,
         }
-        let newpos = self.active_unit().pos().neighbor(direction);
-        self.moveunit_to(newpos)
     }
 
     pub fn new_turn(&mut self) {
@@ -202,8 +200,10 @@ impl Game {
                         self.selection.pos = None;
                     },
                     _ => {
-                        self.movemode = MovementMode::Move;
-                        self.selection.pos = Some(self.active_unit().pos());
+                        if let Some(selpos) = self.active_unit().map(|u| u.pos()) {
+                            self.movemode = MovementMode::Move;
+                            self.selection.pos = Some(selpos);
+                        }
                     },
                 }
                 self.update_details();

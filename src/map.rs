@@ -66,7 +66,7 @@ impl LiveMap {
         panic!("No tile is passable!");
     }
 
-    pub fn add_unit(&mut self, unit: Unit) -> &mut Unit {
+    pub fn add_unit(&mut self, unit: Unit) {
         self.units.add_unit(unit)
     }
 

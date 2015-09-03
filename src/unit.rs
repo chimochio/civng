@@ -8,7 +8,7 @@
 //! Unit management logic.
 
 use std::cmp::min;
-use std::slice::Iter;
+use std::collections::HashMap;
 
 use combat::CombatStats;
 use hexpos::{Pos, Direction};
@@ -167,61 +167,77 @@ impl Unit {
 }
 
 pub struct Units {
-    units: Vec<Unit>,
+    maxid: UnitID,
+    units: HashMap<UnitID, Unit>,
 }
 
 impl Units {
     pub fn new() -> Units {
         Units {
-            units: Vec::new(),
+            maxid: 0,
+            units: HashMap::new(),
         }
     }
 
-    pub fn all_units(&self) -> UnitsIterator {
-        UnitsIterator::new(self.units.iter(), None)
+    pub fn all_units<'a>(&'a self) -> Box<Iterator<Item=&'a Unit> + 'a> {
+        Box::new(self.units.values().filter(|u| !u.is_dead()))
     }
 
-    pub fn my_units(&self) -> UnitsIterator {
-        UnitsIterator::new(self.units.iter(), Some(Player::Me))
+    pub fn my_units<'a>(&'a self) -> Box<Iterator<Item=&'a Unit> + 'a>{
+        Box::new(self.all_units().filter(|u| u.owner() == Player::Me))
     }
 
-    pub fn add_unit(&mut self, unit: Unit) -> &mut Unit {
-        self.units.push(unit);
-        let newlen = self.units.len();
-        let result = &mut self.units[newlen-1];
-        result.id = newlen - 1;
-        result
+    pub fn add_unit(&mut self, mut unit: Unit) {
+        self.maxid += 1;
+        unit.id = self.maxid;
+        self.units.insert(unit.id, unit);
     }
 
     pub fn attack(&mut self, combat_stats: &mut CombatStats) {
-        let from_id = combat_stats.attacker_id;
-        let to_id = combat_stats.defender_id;
+        let attacker_id = combat_stats.attacker_id;
+        let defender_id = combat_stats.defender_id;
         combat_stats.roll();
-        (&mut self.units[from_id]).hp = combat_stats.attacker_remaining_hp();
-        (&mut self.units[from_id]).movements = 0;
-        (&mut self.units[to_id]).hp = combat_stats.defender_remaining_hp();
-        if combat_stats.defender_remaining_hp() == 0 {
-            (&mut self.units[from_id]).pos = (&mut self.units[to_id]).pos;
+        let defender_pos = {
+            let defender = self.get_mut(defender_id);
+            defender.hp = combat_stats.defender_remaining_hp();
+            defender.pos
+        };
+        {
+            let attacker = self.get_mut(attacker_id);
+            attacker.hp = combat_stats.attacker_remaining_hp();
+            attacker.movements = 0;
+            if combat_stats.defender_remaining_hp() == 0 {
+                attacker.pos = defender_pos;
+            }
         }
     }
 
     pub fn max_id(&self) -> UnitID {
-        self.units.len() - 1
+        self.maxid
     }
 
+    /// Returns the next unit that should be activated after `after_id`.
+    ///
+    /// That unit is the smallest non-exhausted unit after the `after_id` unit. If it doesn't
+    /// exist, it's the smallest non-exhausted id. Othewise, we return `None`.
     pub fn next_active_unit(&self, after_id: UnitID) -> Option<UnitID> {
-        // We want to start at the current index and cycle from there, starting back at 0 when
-        // we reach the end of the line. This is why we have this two-parts algo.
-        let second_half = self.my_units().skip_while(|u| u.id <= after_id);
-        match second_half.filter(|u| !u.is_exhausted()).next() {
-            Some(u) => Some(u.id),
-            None => {
-                match self.my_units().filter(|u| !u.is_exhausted()).next() {
-                    Some(u) => Some(u.id),
-                    None => None,
+        let mut result_before = None;
+        let mut result_after = None;
+        for unit in self.my_units() {
+            if !unit.is_exhausted() {
+                if unit.id() > after_id {
+                    if result_after.is_none() || result_after.unwrap() > unit.id() {
+                        result_after = Some(unit.id());
+                    }
+                }
+                else {
+                    if result_before.is_none() || result_before.unwrap() > unit.id() {
+                        result_before = Some(unit.id());
+                    }
                 }
             }
         }
+        result_after.or(result_before)
     }
 
     pub fn unit_at_pos(&self, pos: Pos) -> Option<UnitID> {
@@ -234,57 +250,21 @@ impl Units {
     }
 
     pub fn refresh(&mut self) {
-        for unit in self.units.iter_mut() {
+        for (_, unit) in self.units.iter_mut() {
             unit.refresh();
         }
     }
 
     pub fn get(&self, unit_id: UnitID) -> &Unit {
-        &self.units[unit_id]
+        self.units.get(&unit_id).unwrap()
     }
 
     pub fn get_mut(&mut self, unit_id: UnitID) -> &mut Unit {
-        &mut self.units[unit_id]
+        self.units.get_mut(&unit_id).unwrap()
     }
 
     pub fn get_at_pos(&self, pos: Pos) -> Option<&Unit> {
-        if let Some(uid) = self.unit_at_pos(pos) {
-            Some(self.get(uid))
-        }
-        else {
-            None
-        }
-    }
-}
-
-pub struct UnitsIterator<'a> {
-    units_iter: Iter<'a, Unit>,
-    owner: Option<Player>,
-}
-
-impl<'a> UnitsIterator<'a> {
-    pub fn new(units_iter: Iter<Unit>, owner: Option<Player>) -> UnitsIterator{
-        UnitsIterator {
-            units_iter: units_iter,
-            owner: owner,
-        }
-    }
-}
-
-impl<'a> Iterator for UnitsIterator<'a> {
-    type Item = &'a Unit;
-
-    fn next(&mut self) -> Option<&'a Unit> {
-        while let Some(u) = self.units_iter.next() {
-            if u.is_dead() {
-                continue;
-            }
-            match self.owner {
-                Some(o) => { if u.owner == o { return Some(u) }; },
-                None => return Some(u),
-            }
-        }
-        None
+        self.unit_at_pos(pos).map(|uid| self.get(uid))
     }
 }
 
