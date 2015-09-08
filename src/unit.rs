@@ -11,8 +11,7 @@ use std::cmp::min;
 use std::collections::HashMap;
 
 use combat::CombatStats;
-use hexpos::{Pos, Direction};
-use terrain::Terrain;
+use hexpos::Pos;
 
 pub type UnitID = usize;
 
@@ -104,18 +103,9 @@ impl Unit {
         self.hp == 0
     }
 
-    pub fn move_to(&mut self, target: Pos, cost: u8) {
-        self.pos = target;
-        self.movements -= min(self.movements, cost);
-    }
-
-    /// Move `self` in the specified `direction`.
+    /// Move `self` in the position `target`.
     ///
-    /// `terrain` being the terrain type at the specified destination. If the move is successful,
-    /// returns `true` and deduct the appropriate movements points from the unit.
-    ///
-    /// If the unit doesn't have enough movement points or the terrain is impassable, no move take
-    /// place and we return `false`.
+    /// `cost` is the movement cost of the move, which will be subtracted of the unit's movements.
     ///
     /// # Examples
     ///
@@ -126,35 +116,14 @@ impl Unit {
     ///
     /// let mut unit = Unit::new("Jules", Player::Me, Pos::origin());
     /// unit.refresh();
-    /// // We move alright!
-    /// assert!(unit.move_(Direction::South, Terrain::Grassland));
+    /// let newpos = Pos::origin().neighbor(Direction::South);
+    /// unit.move_to(newpos, 1);
     /// assert_eq!(unit.movements(), 1);
-    /// assert_eq!(unit.pos(), Pos::vector(Direction::South));
-    /// // Impassable
-    /// assert!(!unit.move_(Direction::South, Terrain::Mountain));
-    /// assert_eq!(unit.movements(), 1);
-    /// assert_eq!(unit.pos(), Pos::vector(Direction::South));
-    /// assert!(unit.move_(Direction::South, Terrain::Hill));
-    /// // Costs 2 moves, but we don't go below 0
-    /// assert_eq!(unit.movements(), 0);
-    /// assert_eq!(unit.pos(), Pos::vector(Direction::South).amplify(2));
-    /// // Out of moves
-    /// assert!(!unit.move_(Direction::South, Terrain::Hill));
+    /// assert_eq!(unit.pos(), newpos);
     /// ```
-    pub fn move_(&mut self, direction: Direction, terrain: Terrain) -> bool {
-        if self.movements == 0 || !terrain.is_passable() {
-            return false
-        }
-        let newpos = self.pos.neighbor(direction);
-        self.pos = newpos;
-        let cost = terrain.movement_cost();
-        if cost > self.movements {
-            self.movements = 0;
-        }
-        else {
-            self.movements -= cost;
-        }
-        true
+    pub fn move_to(&mut self, target: Pos, cost: u8) {
+        self.pos = target;
+        self.movements -= min(self.movements, cost);
     }
 
     /// Makes the unit fresh for a new turn.
