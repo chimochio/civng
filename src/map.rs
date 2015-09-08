@@ -200,16 +200,18 @@ impl LivePath {
         }
     }
 
-    pub fn mover(&self) -> Option<UnitID> {
-        match *self.units.first().unwrap() {
-            Some((uid, o)) => if o == Player::Me { Some(uid) } else { None },
-            None => None,
-        }
+    pub fn mover(&self) -> Option<(UnitID, Player)> {
+        *self.units.first().unwrap()
     }
 
     pub fn is_attack(&self) -> bool {
-        match *self.units.last().unwrap() {
-            Some((_, o)) => o == Player::NotMe,
+        match self.mover() {
+            Some((_, mo)) => {
+                match *self.units.last().unwrap() {
+                    Some((_, o)) => mo != o,
+                    None => false,
+                }
+            },
             None => false,
         }
     }
@@ -223,9 +225,10 @@ impl LivePath {
             false
         }
         else {
-            for maybe_unit in self.units[0..self.units.len()-2].iter() {
+            let (_, mover_owner) = self.mover().unwrap();
+            for maybe_unit in self.units[0..self.units.len()-1].iter() {
                 if let Some((_, o)) = *maybe_unit {
-                    if o == Player::NotMe {
+                    if o != mover_owner {
                         return false;
                     }
                 }
@@ -242,13 +245,13 @@ impl LivePath {
         else if self.path.steps() == 0 {
             false
         }
-        else if let Some((_, o)) = *self.units.last().unwrap() {
-            if o == Player::Me {
-                false
-            }
-            else { // attack
+        else if (*self.units.last().unwrap()).is_some() {
+            if self.is_attack() {
                 // only reachable if the pos before last is empty *or* if it's our mover
                 self.units[self.units.len()-2].is_none() || self.path.steps() == 1
+            }
+            else {
+                false
             }
         }
         else {

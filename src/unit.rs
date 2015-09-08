@@ -156,6 +156,10 @@ impl Units {
         Box::new(self.all_units().filter(|u| u.owner() == Player::Me))
     }
 
+    pub fn enemy_units<'a>(&'a self) -> Box<Iterator<Item=&'a Unit> + 'a>{
+        Box::new(self.all_units().filter(|u| u.owner() == Player::NotMe))
+    }
+
     pub fn add_unit(&mut self, mut unit: Unit) {
         self.maxid += 1;
         unit.id = self.maxid;

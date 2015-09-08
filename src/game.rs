@@ -11,7 +11,7 @@ use rustty::{Event, CellAccessor};
 use rustty::ui::{Dialog, DialogResult};
 
 use hexpos::{Pos, Direction};
-use unit::{Unit};
+use unit::{Unit, UnitID};
 use screen::{Screen, DisplayOption};
 use civ5map::load_civ5map;
 use map::LiveMap;
@@ -19,6 +19,7 @@ use combat::CombatStats;
 use combat_result_window::create_combat_result_dialog;
 use combat_confirm_dialog::create_combat_confirm_dialog;
 use selection::Selection;
+use ai::wander;
 
 #[derive(Clone)]
 enum MainloopState {
@@ -104,6 +105,13 @@ impl Game {
         );
     }
 
+    fn play_ai_turn(&mut self) {
+        let enemy_ids: Vec<UnitID> = self.map.units().enemy_units().map(|u| u.id()).collect();
+        for enemy_id in enemy_ids.iter() {
+            wander(*enemy_id, &mut self.map);
+        }
+    }
+
     pub fn map(&self) -> &LiveMap {
         &self.map
     }
@@ -112,7 +120,6 @@ impl Game {
         self.map.add_unit(unit)
     }
 
-    // Code duplication with `moveunit()` is temporary.
     pub fn moveunit_to(&mut self, target: Pos) -> Option<CombatStats> {
         if self.selection.unit_id.is_none() {
             return None;
@@ -133,6 +140,9 @@ impl Game {
     }
 
     pub fn new_turn(&mut self) {
+        if self.turn > 0 {
+            self.play_ai_turn();
+        }
         self.turn += 1;
         self.map.refresh();
         self.cycle_active_unit();

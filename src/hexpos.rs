@@ -238,7 +238,7 @@ impl OffsetPos {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct PosPath {
     stack: Vec<Pos>,
 }

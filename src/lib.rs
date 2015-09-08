@@ -31,6 +31,7 @@ pub mod screen;
 pub mod civ5map;
 pub mod selection;
 pub mod game;
+pub mod ai;
 pub mod details_window;
 pub mod combat_confirm_dialog;
 pub mod combat_result_window;
