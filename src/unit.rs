@@ -8,7 +8,7 @@
 //! Unit management logic.
 
 use std::cmp::min;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use combat::CombatStats;
 use hexpos::Pos;
@@ -218,9 +218,19 @@ impl Units {
         None
     }
 
+    /// Refreshes all units for a new turn and purges dead units from memory.
     pub fn refresh(&mut self) {
+        let mut dead_unitids = HashSet::<UnitID>::new();
         for (_, unit) in self.units.iter_mut() {
-            unit.refresh();
+            if !unit.is_dead() {
+                unit.refresh();
+            }
+            else {
+                dead_unitids.insert(unit.id());
+            }
+        }
+        for unit_id in dead_unitids {
+            self.units.remove(&unit_id);
         }
     }
 
