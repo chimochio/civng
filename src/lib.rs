@@ -21,6 +21,8 @@ extern crate num;
 extern crate rustty;
 extern crate byteorder;
 extern crate rand;
+#[macro_use]
+extern crate bitflags;
 
 pub mod hexpos;
 pub mod terrain;

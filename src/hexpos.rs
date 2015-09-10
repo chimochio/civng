@@ -18,6 +18,8 @@
 
 use num::integer::Integer;
 
+const DIRECTION_COUNT: usize = 6;
+
 /// Possible move directions in a flat-topped hex grid
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Direction {
@@ -30,7 +32,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    pub fn all() -> [Direction; 6] {
+    pub fn all() -> [Direction; DIRECTION_COUNT] {
         [
             Direction::North,
             Direction::NorthEast,
@@ -176,6 +178,15 @@ impl Pos {
             Direction::NorthWest => { p.y += 1; p.x -= 1 },
         }
         p
+    }
+
+    /// Returns an array of all neighbors around `self`.
+    pub fn around(&self) -> [Pos; DIRECTION_COUNT] {
+        let mut result = [Pos::origin(); DIRECTION_COUNT];
+        for (i, d) in Direction::all().into_iter().enumerate() {
+            result[i] = self.neighbor(*d);
+        }
+        result
     }
 
     pub fn fmt(&self) -> String {

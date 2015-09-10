@@ -116,6 +116,7 @@ impl LiveMap {
 
     pub fn moveunit_to(&mut self, unit_id: UnitID, pos: Pos) -> Option<CombatStats> {
         if let Some(path) = self.reachable_pos(unit_id).get(&pos).cloned() {
+            let livepath = LivePath::new(&path, &self);
             if let Some(defender_id) = self.units.unit_at_pos(path.to()) {
                 if path.steps() > 1 {
                     assert!(self.units.unit_at_pos(path.before_last().unwrap()).is_none());
@@ -129,8 +130,8 @@ impl LiveMap {
                 let combat_result = CombatStats::new(attacker, attacker_modifiers, defender, defender_modifiers);
                 return Some(combat_result);
             }
-            let cost = self.terrain().movement_cost(&path);
             let unit = self.units.get_mut(unit_id);
+            let cost = if livepath.is_exhausting() { unit.movements() } else { livepath.cost() };
             unit.move_to(path.to(), cost);
         }
         None
@@ -175,65 +176,118 @@ impl LiveMap {
     }
 }
 
+bitflags! {
+    #[doc="Movement hindrances on a particular position on a live map, from the perspective of a player."]
+    flags Hindrances: u8 {
+        #[doc="A unit is on the cell"]
+        const HINDRANCE_UNIT = 0b01,
+        #[doc="The cell is affected by Zone of Control of an enemy unit"]
+        const HINDRANCE_ZOC = 0b10,
+    }
+}
+
 /// A `PosPath` along with terrain and unit information in that path.
 pub struct LivePath {
     path: PosPath,
     terrain: Vec<Terrain>,
-    units: Vec<Option<(UnitID, Player)>>,
+    hindrances: Vec<Hindrances>,
+    mover: Option<Player>,
+    target: Option<Player>,
 }
 
 impl LivePath {
     pub fn new(path: &PosPath, map: &LiveMap) -> LivePath {
-        fn unit_id_with_owner(map: &LiveMap, pos: Pos) -> Option<(UnitID, Player)> {
-            match map.units().get_at_pos(pos) {
-                Some(u) => Some((u.id(), u.owner())),
+        fn get_hindrances(map: &LiveMap, pos: Pos, mover: Option<Player>) -> Hindrances {
+            let mut result = Hindrances::empty();
+            if let Some(mover_owner) = mover {
+                if let Some(u) =  map.units().get_at_pos(pos) {
+                    result.insert(HINDRANCE_UNIT);
+                    if u.owner() != mover_owner {
+                        result.insert(HINDRANCE_ZOC);
+                    }
+                }
+                for neighbor in pos.around().iter() {
+                    if let Some(u) = map.units().get_at_pos(*neighbor) {
+                        if u.owner() != mover_owner {
+                            result.insert(HINDRANCE_ZOC);
+                        }
+                    }
+                }
+            }
+            result
+        }
+
+        let stack = path.stack();
+        assert!(!stack.is_empty());
+        let mover = {
+            match map.units().get_at_pos(*stack.first().unwrap()) {
+                Some(u) => Some(u.owner()),
                 None => None,
             }
-        }
-        let stack = path.stack();
+        };
+        let target = {
+            match map.units().get_at_pos(*stack.last().unwrap()) {
+                Some(u) => Some(u.owner()),
+                None => None,
+            }
+        };
         let terrain = stack.iter().map(|pos| map.terrain().get_terrain(*pos)).collect();
-        let units = stack.iter().map(|pos| unit_id_with_owner(map, *pos)).collect();
+        let hindrances = stack.iter().map(|pos| get_hindrances(map, *pos, mover)).collect();
         LivePath {
             path: path.clone(),
             terrain: terrain,
-            units: units,
+            hindrances: hindrances,
+            mover: mover,
+            target: target,
         }
     }
 
-    pub fn mover(&self) -> Option<(UnitID, Player)> {
-        *self.units.first().unwrap()
+    fn moves_through_zoc(&self, including_last_index: bool) -> bool {
+        // Check for ZOC effect. A unit moving from a cell being in a ZOC to another cell being in
+        // a ZOC cannot go any further.
+        let mut last_index = self.hindrances.len();
+        if !including_last_index {
+            last_index -= 1;
+        }
+        let mut was_zoc = false;
+        for hindrance in self.hindrances[0..last_index].iter() {
+            if hindrance.contains(HINDRANCE_ZOC) {
+                if was_zoc {
+                    return true;
+                }
+                else {
+                    was_zoc = true;
+                }
+            }
+            else {
+                was_zoc = false;
+            }
+        }
+        false
     }
 
     pub fn is_attack(&self) -> bool {
-        match self.mover() {
-            Some((_, mo)) => {
-                match *self.units.last().unwrap() {
-                    Some((_, o)) => mo != o,
-                    None => false,
-                }
-            },
-            None => false,
+        if let Some(mover_owner) = self.mover {
+            match self.target {
+                Some(p) => p != mover_owner,
+                None => false,
+            }
+        }
+        else {
+            false
         }
     }
 
     /// Whether this path could ever become reachable by adding steps.
     pub fn could_be_reachable(&self) -> bool {
-        if self.mover().is_none() {
+        if self.mover.is_none() {
             false
         }
         else if self.terrain.iter().any(|t| !t.is_passable()) {
             false
         }
         else {
-            let (_, mover_owner) = self.mover().unwrap();
-            for maybe_unit in self.units[0..self.units.len()-1].iter() {
-                if let Some((_, o)) = *maybe_unit {
-                    if o != mover_owner {
-                        return false;
-                    }
-                }
-            }
-            true
+            !self.moves_through_zoc(false)
         }
     }
 
@@ -245,21 +299,21 @@ impl LivePath {
         else if self.path.steps() == 0 {
             false
         }
-        else if (*self.units.last().unwrap()).is_some() {
-            if self.is_attack() {
-                // only reachable if the pos before last is empty *or* if it's our mover
-                self.units[self.units.len()-2].is_none() || self.path.steps() == 1
-            }
-            else {
-                false
-            }
-        }
         else {
-            true
+            let last_pos_hindrance = self.hindrances.last().unwrap();
+            !last_pos_hindrance.contains(HINDRANCE_UNIT) || self.is_attack()
         }
     }
 
+    /// Cost in movements required to move through that path.
     pub fn cost(&self) -> u8 {
         self.terrain[1..].iter().fold(0, |acc, &t| acc + t.movement_cost())
+    }
+
+    /// Whether the movement exhaust all movements of the mover, regardless of terrain costs.
+    ///
+    /// This happens when we move through an enemy ZOC.
+    pub fn is_exhausting(&self) -> bool {
+        self.moves_through_zoc(true)
     }
 }

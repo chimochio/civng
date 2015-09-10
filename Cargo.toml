@@ -12,6 +12,7 @@ doc = false
 num = "*"
 byteorder = "*"
 rand = "*"
+bitflags = "*"
 
 [dependencies.rustty]
 git = "https://github.com/hsoft/rustty.git"
