@@ -13,7 +13,7 @@ use std::cmp::{min, max};
 use num::integer::Integer;
 
 // Re-export for doctests
-pub use rustty::{Terminal, CellAccessor, HasPosition, HasSize, Cell, Style, Attr, Color};
+pub use rustty::{Terminal, CellAccessor, HasPosition, HasSize, Cell, Attr, Color};
 use rustty::Pos as ScreenPos;
 use rustty::ui::{Painter, Alignable, HorizontalAlign, VerticalAlign, Widget};
 
@@ -102,7 +102,7 @@ impl HexCell {
         let (cols, rows) = self.widget.size();
         let mut doit = |x, y| {
             let cell = self.widget.get_mut(x, y).unwrap();
-            cell.set_bg(Style::with_color(color));
+            cell.set_bg(color);
         };
         for ix in 1..cols-1 {
             doit(ix, 0);
@@ -118,7 +118,7 @@ impl HexCell {
         let ch = terrain.map_char();
         let s: String = (0..5).map(|_| ch).collect();
         self.widget.printline(1, 0, &s);
-        let cell = Cell::with_styles(Style::with_attr(Attr::Underline), Style::default());
+        let cell = Cell::with_style(Color::Default, Color::Default, Attr::Underline);
         self.widget.printline_with_cell(1, 3, &s, cell);
     }
 
@@ -129,16 +129,16 @@ impl HexCell {
     pub fn draw_unit(&mut self, unit: &Unit, is_active: bool) {
         let mut cell = self.widget.get_mut(3, 2).unwrap();
         cell.set_ch(unit.map_symbol());
-        let style = if unit.owner() != Player::Me {
-                Style::with_color(Color::Red)
+        let color = if unit.owner() != Player::Me {
+                Color::Red
             }
             else if is_active {
-                Style::with_color(Color::Blue)
+                Color::Blue
             }
             else {
-                Style::default()
+                Color::Default
             };
-        cell.set_fg(style);
+        cell.set_fg(color);
     }
 }
 
@@ -298,7 +298,7 @@ impl Screen {
                     let left_limit = is_at_left && colrepeat == 0;
                     let right_limit = is_at_right && colrepeat == screenx;
                     if top_limit || bottom_limit || left_limit || right_limit {
-                        cell.set_fg(Style::with_color(Color::Red));
+                        cell.set_fg(Color::Red);
                     }
                     cell.set_ch(ch);
                 }
@@ -313,7 +313,7 @@ impl Screen {
                 let basex = colrepeat * CELL_WIDTH + 2;
                 for i in 0..5 {
                     if let Some(cell) = self.term.get_mut(basex + i, 1) {
-                        cell.set_fg(Style::with_attr(Attr::Underline));
+                        cell.set_attrs(Attr::Underline);
                     }
                 }
             }
