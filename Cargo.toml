@@ -9,12 +9,9 @@ name = "civng"
 doc = false
 
 [dependencies]
+rustty = "0.1.9"
 num = "*"
 byteorder = "*"
 rand = "*"
 bitflags = "*"
-
-[dependencies.rustty]
-git = "https://github.com/hsoft/rustty.git"
-branch = "ui"
 
