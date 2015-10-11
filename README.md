@@ -72,7 +72,8 @@ This changes significantly how maps look, but it shouldn't affect gameplay.
 ## Usage
 
 The app starts with the top left cell of the screen being the top left cell of the map. There are
-two units, Larry and Benny (`L` and `B`) which move in turns. You can move it with `w/a/s/d/q/e`.
+two units, Larry and Benny (`L` and `B`) which move in turns. You can move it with `w/a/s/d/q/e`
+or with the numpad *with numlock turned on*.
 
 Each unit has two movements per turn. You can cycle through active units with `.`. You start a new
 turn by pressing Return.

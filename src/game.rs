@@ -41,12 +41,12 @@ enum MovementMode {
 
 fn direction_for_key(key: char) -> Option<Direction> {
     match key {
-        'w' => Some(Direction::North),
-        'e' => Some(Direction::NorthEast),
-        'd' => Some(Direction::SouthEast),
-        's' => Some(Direction::South),
-        'a' => Some(Direction::SouthWest),
-        'q' => Some(Direction::NorthWest),
+        '8' | 'w' => Some(Direction::North),
+        '9' | 'e' => Some(Direction::NorthEast),
+        '3' | 'd' => Some(Direction::SouthEast),
+        '2' | 's' => Some(Direction::South),
+        '1' | 'a' => Some(Direction::SouthWest),
+        '7' | 'q' => Some(Direction::NorthWest),
         _ => None,
     }
 }
