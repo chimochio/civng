@@ -7,7 +7,7 @@
 
 //! Represent hex cells *in the context of a terminal UI*.
 
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap};
 use std::cmp::{min, max};
 
 use num::integer::Integer;
@@ -143,10 +143,12 @@ impl HexCell {
 }
 
 /// Various display options that can be enabled in `Screen`.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DisplayOption {
+#[derive(Clone, Copy)]
+pub struct DrawOptions {
     /// Show positional markers in each hex cell.
-    PosMarkers,
+    pub pos_markers: bool,
+    /// Whether we highlight cells that we can reach.
+    pub highlight_reachable_pos: bool,
 }
 /// Takes care of drawing everything we need to draw on screen.
 ///
@@ -155,7 +157,6 @@ pub enum DisplayOption {
 pub struct Screen {
     pub term: Terminal,
     cells: Vec<HexCell>,
-    options: HashSet<DisplayOption>,
     /// Cell at the top-left corner of the screen
     topleft: Pos,
     /// Size of the map during the last draw call.
@@ -178,23 +179,9 @@ impl Screen {
         Screen {
             term: term,
             cells: cells,
-            options: HashSet::new(),
             topleft: Pos::origin(),
             map_size: (0, 0),
             details_window: details_window,
-        }
-    }
-
-    pub fn has_option(&self, option:DisplayOption) -> bool {
-        self.options.contains(&option)
-    }
-
-    pub fn toggle_option(&mut self, option: DisplayOption) {
-        if self.options.contains(&option) {
-            self.options.remove(&option);
-        }
-        else {
-            self.options.insert(option);
         }
     }
 
@@ -328,7 +315,8 @@ impl Screen {
             &mut self,
             map: &LiveMap,
             selection: &Selection,
-            popup: Option<&mut Widget>) {
+            popup: Option<&mut Widget>,
+            options: DrawOptions) {
         let _ = self.term.clear();
         self.map_size = map.terrain().size();
         let reachablepos = match selection.unit_id {
@@ -337,7 +325,6 @@ impl Screen {
             }
             None => HashMap::new(),
         };
-        let with_posmarkers = self.has_option(DisplayOption::PosMarkers);
         for cell in self.cells.iter_mut() {
             let pos = cell.pos().translate(self.topleft);
             cell.clear();
@@ -346,7 +333,7 @@ impl Screen {
             if terrain == Terrain::OutOfBounds {
                 continue;
             }
-            if with_posmarkers {
+            if options.pos_markers {
                 cell.draw_posmarker(pos.to_offset_pos());
             }
             cell.draw_terrain(terrain);
@@ -355,17 +342,19 @@ impl Screen {
                 let is_active = selection.is_unit_active(unit.id());
                 cell.draw_unit(unit, is_active);
             }
-            if selection.pos.is_some() && pos == selection.pos.unwrap() {
-                cell.highlight(Color::Blue)
-            }
-            else if reachablepos.contains_key(&pos) {
-                let mut color = Color::Yellow;
-                if let Some(u) = map.units().get_at_pos(pos) {
-                    if u.owner() != Player::Me {
-                        color = Color::Red;
-                    }
+            if options.highlight_reachable_pos {
+                if selection.pos.is_some() && pos == selection.pos.unwrap() {
+                    cell.highlight(Color::Blue)
                 }
-                cell.highlight(color);
+                else if reachablepos.contains_key(&pos) {
+                    let mut color = Color::Yellow;
+                    if let Some(u) = map.units().get_at_pos(pos) {
+                        if u.owner() != Player::Me {
+                            color = Color::Red;
+                        }
+                    }
+                    cell.highlight(color);
+                }
             }
             cell.draw_into(&mut self.term);
         }

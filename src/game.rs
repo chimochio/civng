@@ -12,7 +12,7 @@ use rustty::ui::{Dialog, DialogResult};
 
 use hexpos::{Pos, Direction};
 use unit::{Unit, UnitID};
-use screen::{Screen, DisplayOption};
+use screen::{Screen, DrawOptions};
 use civ5map::load_civ5map;
 use map::LiveMap;
 use combat::CombatStats;
@@ -58,6 +58,7 @@ pub struct Game {
     map: LiveMap,
     turn: u16,
     selection: Selection,
+    show_pos_markers: bool,
     current_dialog: Option<Dialog>,
 }
 
@@ -73,6 +74,7 @@ impl Game {
             },
             turn: 0,
             selection: Selection::new(),
+            show_pos_markers: false,
             current_dialog: None,
         }
     }
@@ -154,7 +156,11 @@ impl Game {
             Some(ref mut d) => Some(d.window_mut()),
             None => None,
         };
-        self.screen.draw(&self.map, &self.selection, popup);
+        let options = DrawOptions {
+            pos_markers: self.show_pos_markers,
+            highlight_reachable_pos: self.movemode == MovementMode::Move,
+        };
+        self.screen.draw(&self.map, &self.selection, popup, options);
     }
 
     /// Returns whether the keypress was handled by the current dialog.
@@ -197,7 +203,7 @@ impl Game {
         match key {
             'Q' => { return false; },
             'P' => {
-                self.screen.toggle_option(DisplayOption::PosMarkers);
+                self.show_pos_markers = !self.show_pos_markers;
             },
             'S' => {
                 self.movemode = if self.movemode == MovementMode::Scroll { MovementMode::Normal } else { MovementMode::Scroll };
