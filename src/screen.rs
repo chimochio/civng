@@ -152,7 +152,8 @@ pub struct DrawOptions {
 /// This wraps's rustty's `Terminal` singleton, so any dealing we have with the terminal has to
 /// go through this struct.
 pub struct Screen {
-    pub term: Terminal,
+    /// Size of the screen *in hex cells*
+    screensize: (usize, usize),
     cells: Vec<HexCell>,
     /// Cell at the top-left corner of the screen
     topleft: Pos,
@@ -162,10 +163,9 @@ pub struct Screen {
 }
 
 impl Screen {
-    pub fn new() -> Screen {
-        let term = Terminal::new().unwrap();
-        let details_window = DetailsWindow::new(&term);
-        let (screenw, screenh) = size_in_cells(&term);
+    pub fn new(term: &Terminal) -> Screen {
+        let details_window = DetailsWindow::new(term);
+        let (screenw, screenh) = size_in_cells(term);
         let mut cells = Vec::new();
         for iy in 0..screenh {
             for ix in 0..screenw {
@@ -174,7 +174,7 @@ impl Screen {
             }
         }
         Screen {
-            term: term,
+            screensize: (screenw, screenh),
             cells: cells,
             topleft: Pos::origin(),
             map_size: (0, 0),
@@ -182,9 +182,13 @@ impl Screen {
         }
     }
 
+    pub fn update_screen_size(&mut self, term: &Terminal) {
+        self.screensize = size_in_cells(term);
+    }
+
     pub fn scroll_to(&mut self, topleft: Pos) {
         let mut opos = topleft.to_offset_pos();
-        let (screenw, screenh) = size_in_cells(&self.term);
+        let (screenw, screenh) = self.screensize;
         let (mapw, maph) = self.map_size;
         opos.y = min(opos.y, maph - screenh as i32);
         opos.x = min(opos.x, mapw - screenw as i32);
@@ -230,7 +234,7 @@ impl Screen {
     /// screen.center_on_pos(pos, &map);
     /// ```
     pub fn center_on_pos(&mut self, pos: Pos, map: &TerrainMap) {
-        let (width, height) = size_in_cells(&self.term);
+        let (width, height) = self.screensize;
         let (map_width, map_height) = map.size();
         let max_x = map_width - width as i32;
         let max_y = map_height - height as i32;
@@ -243,7 +247,7 @@ impl Screen {
     }
 
     /// Fills the screen with a hex grid.
-    fn drawgrid(&mut self) {
+    fn drawgrid(&self, term: &mut Terminal) {
         //  ╱     ╲
         // ╱       ╲
         // ╲       ╱
@@ -252,7 +256,7 @@ impl Screen {
         let is_oddx = otopleft.x.div_rem(&2).1 == 1;
         let (mapw, maph) = self.map_size;
         let chars = [('╱', 1), ('╱', 0), ('╲', 0), ('╲', 1)];
-        let (screenx, screeny) = size_in_cells(&self.term);
+        let (screenx, screeny) = self.screensize;
         let is_at_top = otopleft.y == 0 && !is_oddx;
         let is_at_bottom = otopleft.y + screeny as i32 >= maph;
         let is_at_left = otopleft.x == 0;
@@ -275,7 +279,7 @@ impl Screen {
             }
             let char_iter = chars.iter().cycle().skip(skipcount).enumerate();
             for (y, &(ch, offset_x)) in char_iter.take(takecount) {
-                if let Some(cell) = self.term.get_mut(basex + offset_x, y) {
+                if let Some(cell) = term.get_mut(basex + offset_x, y) {
                     let top_limit = is_at_top && y < 2;
                     let bottom_limit = colrepeat > 0 && is_at_bottom && y >= takecount - 2;
                     let left_limit = is_at_left && colrepeat == 0;
@@ -295,7 +299,7 @@ impl Screen {
             if colrepeat.div_rem(&2).1 == 1 {
                 let basex = colrepeat * CELL_WIDTH + 2;
                 for i in 0..5 {
-                    if let Some(cell) = self.term.get_mut(basex + i, 1) {
+                    if let Some(cell) = term.get_mut(basex + i, 1) {
                         cell.set_attrs(Attr::Underline);
                     }
                 }
@@ -308,11 +312,12 @@ impl Screen {
     /// `map` is the terrain map we want to draw and `unitpos` is the position of the test unit
     /// we're moving around.
     pub fn draw(&mut self,
+                term: &mut Terminal,
                 map: &LiveMap,
                 selection: &Selection,
                 popup: Option<&mut Widget>,
                 options: DrawOptions) {
-        let _ = self.term.clear();
+        let _ = term.clear();
         self.map_size = map.terrain().size();
         let reachablepos = match selection.unit_id {
             Some(uid) => map.reachable_pos(uid),
@@ -348,17 +353,14 @@ impl Screen {
                     cell.highlight(color);
                 }
             }
-            cell.draw_into(&mut self.term);
+            cell.draw_into(term);
         }
-        self.drawgrid();
-        self.details_window.draw_into(&mut self.term);
+        self.drawgrid(term);
+        self.details_window.draw_into(term);
         if let Some(w) = popup {
-            w.align(&self.term,
-                    HorizontalAlign::Middle,
-                    VerticalAlign::Middle,
-                    0);
-            w.draw_into(&mut self.term);
+            w.align(term, HorizontalAlign::Middle, VerticalAlign::Middle, 0);
+            w.draw_into(term);
         }
-        let _ = self.term.swap_buffers();
+        let _ = term.swap_buffers();
     }
 }

@@ -7,7 +7,7 @@
 
 use std::path::Path;
 
-use rustty::{Event, CellAccessor};
+use rustty::{Event, CellAccessor, Terminal};
 use rustty::ui::{Dialog, DialogResult};
 
 use hexpos::{Pos, Direction};
@@ -54,6 +54,7 @@ fn direction_for_key(key: char) -> Option<Direction> {
 pub struct Game {
     state: MainloopState,
     movemode: MovementMode,
+    term: Terminal,
     screen: Screen,
     map: LiveMap,
     turn: u16,
@@ -64,10 +65,13 @@ pub struct Game {
 
 impl Game {
     pub fn new(map_path: &Path) -> Game {
+        let term = Terminal::new().unwrap();
+        let screen = Screen::new(&term);
         Game {
             state: MainloopState::Normal,
             movemode: MovementMode::Normal,
-            screen: Screen::new(),
+            term: term,
+            screen: screen,
             map: {
                 let terrainmap = load_civ5map(map_path);
                 LiveMap::new(terrainmap)
@@ -158,7 +162,7 @@ impl Game {
             pos_markers: self.show_pos_markers,
             highlight_reachable_pos: self.movemode == MovementMode::Move,
         };
-        self.screen.draw(&self.map, &self.selection, popup, options);
+        self.screen.draw(&mut self.term, &self.map, &self.selection, popup, options);
     }
 
     /// Returns whether the keypress was handled by the current dialog.
@@ -276,7 +280,7 @@ impl Game {
 
     /// Returns whether the mainloop should continue
     pub fn handle_events(&mut self) -> bool {
-        match self.screen.term.get_event(-1) {
+        match self.term.get_event(-1) {
             Ok(Some(Event::Key(k))) => {
                 match self.state.clone() {
                     MainloopState::Normal => {
