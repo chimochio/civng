@@ -1,4 +1,4 @@
-// Copyright 2015 Virgil Dupras
+// Copyright 2016 Virgil Dupras
 //
 // This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 // which should be included with this package. The terms are also available at
@@ -20,12 +20,14 @@ use combat_result_window::create_combat_result_dialog;
 use combat_confirm_dialog::create_combat_confirm_dialog;
 use selection::Selection;
 use ai::wander;
+use overhead::draw_overhead_map;
 
 #[derive(Clone)]
 enum MainloopState {
     Normal,
     CombatConfirm(CombatStats),
     MessageDialog,
+    OverheadMap,
 }
 
 /// Mode under which the game interprets movement keypresses.
@@ -154,16 +156,26 @@ impl Game {
     }
 
     pub fn draw(&mut self) {
-        let popup = match self.current_dialog {
-            Some(ref mut d) => Some(d.window_mut()),
-            None => None,
-        };
-        let options = DrawOptions {
-            pos_markers: self.show_pos_markers,
-            highlight_reachable_pos: self.movemode == MovementMode::Move,
-        };
-        self.screen.update_screen_size(&self.term);
-        self.screen.draw(&mut self.term, &self.map, &self.selection, popup, options);
+        match self.state {
+            MainloopState::OverheadMap => {
+                let selected_pos = self.selection
+                                       .unit_id
+                                       .map(|uid| self.map.units().get(uid).pos());
+                draw_overhead_map(&mut self.term, self.map.terrain(), selected_pos);
+            }
+            _ => {
+                let popup = match self.current_dialog {
+                    Some(ref mut d) => Some(d.window_mut()),
+                    None => None,
+                };
+                let options = DrawOptions {
+                    pos_markers: self.show_pos_markers,
+                    highlight_reachable_pos: self.movemode == MovementMode::Move,
+                };
+                self.screen.update_screen_size(&self.term);
+                self.screen.draw(&mut self.term, &self.map, &self.selection, popup, options);
+            }
+        }
     }
 
     /// Returns whether the keypress was handled by the current dialog.
@@ -196,6 +208,16 @@ impl Game {
             Some(DialogResult::Cancel) => {
                 self.state = MainloopState::Normal;
                 self.current_dialog = None;
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_overheadmap_keypress(&mut self, key: char) {
+        match key {
+            'z' => {
+                self.state = MainloopState::Normal;
+                self.draw()
             }
             _ => {}
         }
@@ -255,6 +277,10 @@ impl Game {
                 self.update_details();
                 self.draw()
             }
+            'z' => {
+                self.state = MainloopState::OverheadMap;
+                self.draw()
+            }
             k => {
                 if let Some(d) = direction_for_key(k) {
                     match self.movemode {
@@ -294,6 +320,9 @@ impl Game {
                     }
                     MainloopState::CombatConfirm(mut c) => {
                         self.handle_combatconfirm_keypress(k, &mut c);
+                    }
+                    MainloopState::OverheadMap => {
+                        self.handle_overheadmap_keypress(k);
                     }
                 }
             }

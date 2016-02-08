@@ -26,11 +26,11 @@ Very early. Features:
 * Turns, with limited movements in each one.
 * Active unit is colored and its reachable cells are highlighted in yellow.
 * Move mode allowing to step over friendly units.
+* Overhead terrain map.
 
 ## Requirements
 
-* [Rust][rust] 1.2
-* [Cargo][cargo]
+* [Rust][rust] 1.6
 * A terminal using a font that supports [Unicode box-drawing characters][boxdrawing]
 
 Dependencies (automatically installed by cargo):
@@ -94,10 +94,12 @@ You can scroll the map! To do so, press `shift-s` to toggle scroll mode. Now, wh
 movement keys, it's the map that will scroll instead of the active unit. When you reach limits of
 the map, you'll see red borders. That's when you can't scroll any further.
 
+To toggle the overhead map, press `z`. This will show terrain features of the current map in a
+one-char-is-one-tile fashion. Press `z` again to return to the normal map.
+
 `shift-q` to quit.
 
 [rust]: http://www.rust-lang.org/
-[cargo]: https://crates.io/
 [boxdrawing]: https://en.wikipedia.org/wiki/Box-drawing_character
 [rustty]: https://github.com/cpjreynolds/rustty
 [num]: https://crates.io/crates/num
