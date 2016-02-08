@@ -162,6 +162,7 @@ impl Game {
             pos_markers: self.show_pos_markers,
             highlight_reachable_pos: self.movemode == MovementMode::Move,
         };
+        self.screen.update_screen_size(&self.term);
         self.screen.draw(&mut self.term, &self.map, &self.selection, popup, options);
     }
 
