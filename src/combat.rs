@@ -1,9 +1,9 @@
-/* Copyright 2015 Virgil Dupras
- *
- * This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
- * which should be included with this package. The terms are also available at
- * http://www.gnu.org/licenses/gpl-3.0.html
- */
+// Copyright 2015 Virgil Dupras
+//
+// This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+// which should be included with this package. The terms are also available at
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
 
 use std::cmp::max;
 
@@ -34,10 +34,11 @@ pub struct CombatStats {
 }
 
 impl CombatStats {
-    pub fn new(
-            attacker: &Unit, attacker_modifiers: Vec<Modifier>,
-            defender: &Unit, defender_modifiers: Vec<Modifier>,
-            ) -> CombatStats {
+    pub fn new(attacker: &Unit,
+               attacker_modifiers: Vec<Modifier>,
+               defender: &Unit,
+               defender_modifiers: Vec<Modifier>)
+               -> CombatStats {
         CombatStats {
             attacker_id: attacker.id(),
             defender_id: defender.id(),
@@ -55,11 +56,13 @@ impl CombatStats {
     }
 
     pub fn attacker_strength(&self) -> f32 {
-        apply_modifier(self.attacker_base_strength as f32, self.attacker_modifiers_total())
+        apply_modifier(self.attacker_base_strength as f32,
+                       self.attacker_modifiers_total())
     }
 
     pub fn defender_strength(&self) -> f32 {
-        apply_modifier(self.defender_base_strength as f32, self.defender_modifiers_total())
+        apply_modifier(self.defender_base_strength as f32,
+                       self.defender_modifiers_total())
     }
 
     pub fn attacker_modifiers_total(&self) -> i16 {
@@ -71,22 +74,21 @@ impl CombatStats {
     }
 
     pub fn dmgrange_to_attacker(&self) -> DmgRange {
-        compute_dmg_range(
-            self.defender_strength(), self.defender_starting_hp, self.attacker_strength()
-        )
+        compute_dmg_range(self.defender_strength(),
+                          self.defender_starting_hp,
+                          self.attacker_strength())
     }
 
     pub fn dmgrange_to_defender(&self) -> DmgRange {
-        compute_dmg_range(
-            self.attacker_strength(), self.attacker_starting_hp, self.defender_strength()
-        )
+        compute_dmg_range(self.attacker_strength(),
+                          self.attacker_starting_hp,
+                          self.defender_strength())
     }
 
     pub fn attacker_remaining_hp(&self) -> u8 {
         if self.dmg_to_attacker > self.attacker_starting_hp {
             0
-        }
-        else {
+        } else {
             self.attacker_starting_hp - self.dmg_to_attacker
         }
     }
@@ -94,8 +96,7 @@ impl CombatStats {
     pub fn defender_remaining_hp(&self) -> u8 {
         if self.dmg_to_defender > self.defender_starting_hp {
             0
-        }
-        else {
+        } else {
             self.defender_starting_hp - self.dmg_to_defender
         }
     }
@@ -109,8 +110,7 @@ impl CombatStats {
             // Only one unit can die. Revive the "less dead" one.
             if attacker_hp > defender_hp {
                 dmg_to_attacker = self.attacker_starting_hp - 1;
-            }
-            else {
+            } else {
                 dmg_to_defender = self.defender_starting_hp - 1;
             }
         }
@@ -170,14 +170,18 @@ fn roll_dice(range: DmgRange) -> u8 {
     let mut rng = rand::thread_rng();
     let (min, max) = range;
     // max+1 because Range excludes high bound.
-    Range::new(min, max+1).ind_sample(&mut rng)
+    Range::new(min, max + 1).ind_sample(&mut rng)
 }
 
-fn compute_dmg_range(source_strength: f32 , source_hp: u8, target_strength: f32) -> DmgRange {
+fn compute_dmg_range(source_strength: f32, source_hp: u8, target_strength: f32) -> DmgRange {
     let target_is_weak = source_strength > target_strength;
-    let (strong_strength, weak_strength) = if target_is_weak { (source_strength, target_strength) } else { (target_strength, source_strength) };
+    let (strong_strength, weak_strength) = if target_is_weak {
+        (source_strength, target_strength)
+    } else {
+        (target_strength, source_strength)
+    };
     let r = strong_strength / weak_strength;
-    let mut m = 0.5 + num::pow(r+3.0, 4) / 512.0;
+    let mut m = 0.5 + num::pow(r + 3.0, 4) / 512.0;
     if !target_is_weak {
         m = 1.0 / m;
     }
@@ -195,4 +199,3 @@ fn apply_penalty_for_damaged_unit(dealt_dmg: f32, dealer_hp: u8) -> f32 {
     let penalty = ((100 - dealer_hp) / 20) as f32 * 0.1;
     dealt_dmg - (dealt_dmg * penalty)
 }
-

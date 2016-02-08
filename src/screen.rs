@@ -1,13 +1,13 @@
-/* Copyright 2015 Virgil Dupras
- *
- * This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
- * which should be included with this package. The terms are also available at
- * http://www.gnu.org/licenses/gpl-3.0.html
- */
+// Copyright 2015 Virgil Dupras
+//
+// This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+// which should be included with this package. The terms are also available at
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
 
 //! Represent hex cells *in the context of a terminal UI*.
 
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::cmp::{min, max};
 
 use num::integer::Integer;
@@ -36,7 +36,7 @@ fn size_in_cells(term: &Terminal) -> (usize, usize) {
     // cols -2 because of the overhead of the wavy lines. Without this overhead counting, we
     // get incomplete borders.
     // rows -2 also because of wavy cell placement overhead
-    ((cols - 2)/ CELL_WIDTH, (rows - 2) / CELL_HEIGHT)
+    ((cols - 2) / CELL_WIDTH, (rows - 2) / CELL_HEIGHT)
 }
 
 /// Returns the position of `pos` on the screen
@@ -54,14 +54,13 @@ fn get_screenpos(pos: Pos) -> ScreenPos {
     (spx, spy)
 }
 
-/*
- X     ╲
-╱       ╲
-╲       ╱
- ╲_____╱
- * Origin of the widget is at X.
- * Don't put contents in corners, you'll conflict with grid lines.
- */
+//  X     ╲
+// ╱       ╲
+// ╲       ╱
+//  ╲_____╱
+// Origin of the widget is at X.
+// Don't put contents in corners, you'll conflict with grid lines.
+//
 struct HexCell {
     pos: Pos,
     widget: Widget,
@@ -104,13 +103,13 @@ impl HexCell {
             let cell = self.widget.get_mut(x, y).unwrap();
             cell.set_bg(color);
         };
-        for ix in 1..cols-1 {
+        for ix in 1..cols - 1 {
             doit(ix, 0);
-            doit(ix, rows-1);
+            doit(ix, rows - 1);
         }
-        for iy in 1..rows-1 {
+        for iy in 1..rows - 1 {
             doit(0, iy);
-            doit(cols-1, iy);
+            doit(cols - 1, iy);
         }
     }
 
@@ -130,14 +129,12 @@ impl HexCell {
         let mut cell = self.widget.get_mut(3, 2).unwrap();
         cell.set_ch(unit.map_symbol());
         let color = if unit.owner() != Player::Me {
-                Color::Red
-            }
-            else if is_active {
-                Color::Blue
-            }
-            else {
-                Color::Default
-            };
+            Color::Red
+        } else if is_active {
+            Color::Blue
+        } else {
+            Color::Default
+        };
         cell.set_fg(color);
     }
 }
@@ -254,12 +251,7 @@ impl Screen {
         let otopleft = self.topleft.to_offset_pos();
         let is_oddx = otopleft.x.div_rem(&2).1 == 1;
         let (mapw, maph) = self.map_size;
-        let chars = [
-            ('╱', 1),
-            ('╱', 0),
-            ('╲', 0),
-            ('╲', 1),
-        ];
+        let chars = [('╱', 1), ('╱', 0), ('╲', 0), ('╲', 1)];
         let (screenx, screeny) = size_in_cells(&self.term);
         let is_at_top = otopleft.y == 0 && !is_oddx;
         let is_at_bottom = otopleft.y + screeny as i32 >= maph;
@@ -267,9 +259,13 @@ impl Screen {
         let is_at_right = otopleft.x + screenx as i32 >= mapw;
         // +1 because we want to close the last cell by drawing its right border, not only its
         // left one.
-        for colrepeat in 0..screenx+1 {
+        for colrepeat in 0..screenx + 1 {
             let basex = colrepeat * CELL_WIDTH;
-            let skipcount = if colrepeat.div_rem(&2).1 == 1 { 2 } else { 0 };
+            let skipcount = if colrepeat.div_rem(&2).1 == 1 {
+                2
+            } else {
+                0
+            };
             let mut takecount = screeny * CELL_HEIGHT + 2;
             if colrepeat == 0 || (is_at_bottom && is_oddx) {
                 // The colrepeat==0  gives us a "rounded" corner.
@@ -311,18 +307,15 @@ impl Screen {
     ///
     /// `map` is the terrain map we want to draw and `unitpos` is the position of the test unit
     /// we're moving around.
-    pub fn draw(
-            &mut self,
-            map: &LiveMap,
-            selection: &Selection,
-            popup: Option<&mut Widget>,
-            options: DrawOptions) {
+    pub fn draw(&mut self,
+                map: &LiveMap,
+                selection: &Selection,
+                popup: Option<&mut Widget>,
+                options: DrawOptions) {
         let _ = self.term.clear();
         self.map_size = map.terrain().size();
         let reachablepos = match selection.unit_id {
-            Some(uid) => {
-                map.reachable_pos(uid)
-            }
+            Some(uid) => map.reachable_pos(uid),
             None => HashMap::new(),
         };
         for cell in self.cells.iter_mut() {
@@ -345,8 +338,7 @@ impl Screen {
             if options.highlight_reachable_pos {
                 if selection.pos.is_some() && pos == selection.pos.unwrap() {
                     cell.highlight(Color::Blue)
-                }
-                else if reachablepos.contains_key(&pos) {
+                } else if reachablepos.contains_key(&pos) {
                     let mut color = Color::Yellow;
                     if let Some(u) = map.units().get_at_pos(pos) {
                         if u.owner() != Player::Me {
@@ -361,10 +353,12 @@ impl Screen {
         self.drawgrid();
         self.details_window.draw_into(&mut self.term);
         if let Some(w) = popup {
-            w.align(&self.term, HorizontalAlign::Middle, VerticalAlign::Middle, 0);
+            w.align(&self.term,
+                    HorizontalAlign::Middle,
+                    VerticalAlign::Middle,
+                    0);
             w.draw_into(&mut self.term);
         }
         let _ = self.term.swap_buffers();
     }
 }
-

@@ -1,9 +1,9 @@
-/* Copyright 2015 Virgil Dupras
- *
- * This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
- * which should be included with this package. The terms are also available at
- * http://www.gnu.org/licenses/gpl-3.0.html
- */
+// Copyright 2015 Virgil Dupras
+//
+// This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+// which should be included with this package. The terms are also available at
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
 
 use std::path::Path;
 
@@ -102,9 +102,7 @@ impl Game {
             _ => "",
         };
         let selected_pos = self.selection.pos.or(self.active_unit().map(|u| u.pos()));
-        self.screen.details_window.update(
-            selected_pos, &self.map, self.turn, movemode
-        );
+        self.screen.details_window.update(selected_pos, &self.map, self.turn, movemode);
     }
 
     fn play_ai_turn(&mut self) {
@@ -175,8 +173,8 @@ impl Game {
                 self.current_dialog = None;
                 self.cycle_active_unit();
                 self.update_details();
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
@@ -189,41 +187,47 @@ impl Game {
                 self.update_details();
                 self.current_dialog = Some(create_combat_result_dialog(combat_stats));
                 self.state = MainloopState::MessageDialog;
-            },
+            }
             Some(DialogResult::Cancel) => {
                 self.state = MainloopState::Normal;
                 self.current_dialog = None;
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
     /// Returns whether the mainloop should continue
     fn handle_normal_keypress(&mut self, key: char) -> bool {
         match key {
-            'Q' => { return false; },
+            'Q' => {
+                return false;
+            }
             'P' => {
                 self.show_pos_markers = !self.show_pos_markers;
-            },
+            }
             'S' => {
-                self.movemode = if self.movemode == MovementMode::Scroll { MovementMode::Normal } else { MovementMode::Scroll };
+                self.movemode = if self.movemode == MovementMode::Scroll {
+                    MovementMode::Normal
+                } else {
+                    MovementMode::Scroll
+                };
                 self.update_details();
-            },
+            }
             'm' => {
                 match self.movemode {
                     MovementMode::Move => {
                         self.movemode = MovementMode::Normal;
                         self.selection.pos = None;
-                    },
+                    }
                     _ => {
                         if let Some(selpos) = self.active_unit().map(|u| u.pos()) {
                             self.movemode = MovementMode::Move;
                             self.selection.pos = Some(selpos);
                         }
-                    },
+                    }
                 }
                 self.update_details();
-            },
+            }
             '\r' => {
                 match self.movemode {
                     MovementMode::Move => {
@@ -235,32 +239,37 @@ impl Game {
                         self.movemode = MovementMode::Normal;
                         self.selection.pos = None;
                         self.update_details();
-                    },
-                    _ => { self.new_turn(); },
+                    }
+                    _ => {
+                        self.new_turn();
+                    }
                 }
-            },
+            }
             '.' => {
                 self.cycle_active_unit();
                 self.update_details();
                 self.draw()
-            },
-            k => if let Some(d) = direction_for_key(k) {
-                match self.movemode {
-                    MovementMode::Normal => {
-                        if let Some(ref combat_result) = self.moveunit(d) {
-                            self.current_dialog = Some(create_combat_confirm_dialog(combat_result));
-                            self.state = MainloopState::CombatConfirm(combat_result.clone());
+            }
+            k => {
+                if let Some(d) = direction_for_key(k) {
+                    match self.movemode {
+                        MovementMode::Normal => {
+                            if let Some(ref combat_result) = self.moveunit(d) {
+                                self.current_dialog =
+                                    Some(create_combat_confirm_dialog(combat_result));
+                                self.state = MainloopState::CombatConfirm(combat_result.clone());
+                            }
                         }
-                    },
-                    MovementMode::Scroll => {
-                        self.screen.scroll(Pos::origin().neighbor(d));
-                    },
-                    MovementMode::Move => {
-                        self.selection.pos = Some(self.selection.pos.unwrap().neighbor(d));
-                        self.update_details();
-                    },
+                        MovementMode::Scroll => {
+                            self.screen.scroll(Pos::origin().neighbor(d));
+                        }
+                        MovementMode::Move => {
+                            self.selection.pos = Some(self.selection.pos.unwrap().neighbor(d));
+                            self.update_details();
+                        }
+                    }
                 }
-            },
+            }
         }
         true
     }
@@ -274,14 +283,19 @@ impl Game {
                         if !self.handle_normal_keypress(k) {
                             return false;
                         }
-                    },
-                    MainloopState::MessageDialog => { self.handle_messagedialog_keypress(k); },
-                    MainloopState::CombatConfirm(mut c) => { self.handle_combatconfirm_keypress(k, &mut c); },
+                    }
+                    MainloopState::MessageDialog => {
+                        self.handle_messagedialog_keypress(k);
+                    }
+                    MainloopState::CombatConfirm(mut c) => {
+                        self.handle_combatconfirm_keypress(k, &mut c);
+                    }
                 }
-            },
-            _ => { return false; },
+            }
+            _ => {
+                return false;
+            }
         }
         true
     }
 }
-

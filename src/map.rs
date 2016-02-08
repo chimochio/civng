@@ -1,9 +1,9 @@
-/* Copyright 2015 Virgil Dupras
- *
- * This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
- * which should be included with this package. The terms are also available at
- * http://www.gnu.org/licenses/gpl-3.0.html
- */
+// Copyright 2015 Virgil Dupras
+//
+// This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+// which should be included with this package. The terms are also available at
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
 
 use std::collections::hash_map::{HashMap, Entry};
 
@@ -36,8 +36,7 @@ impl LiveMap {
     pub fn is_pos_passable(&self, pos: Pos) -> bool {
         if !self.terrain.get_terrain(pos).is_passable() {
             false
-        }
-        else {
+        } else {
             self.units.unit_at_pos(pos) == None
         }
     }
@@ -60,7 +59,7 @@ impl LiveMap {
     pub fn first_passable(&self, from: Pos) -> Pos {
         for (pos, _) in self.terrain.tiles().skip_while(|&(p, _)| p != from) {
             if self.is_pos_passable(pos) {
-                return pos
+                return pos;
             }
         }
         panic!("No tile is passable!");
@@ -76,8 +75,7 @@ impl LiveMap {
         let terrain_modifer_amount = terrain.defense_modifier();
         if terrain_modifer_amount != 0 {
             Some(Modifier::new(terrain_modifer_amount, ModifierType::Terrain))
-        }
-        else {
+        } else {
             None
         }
     }
@@ -95,13 +93,16 @@ impl LiveMap {
         }
         if flank_count > 1 {
             Some(Modifier::new((flank_count - 1) * 10, ModifierType::Flanking))
-        }
-        else {
+        } else {
             None
         }
     }
 
-    fn get_unit_modifiers(&self, unit_id: UnitID, against_id: UnitID, defends: bool) -> Vec<Modifier> {
+    fn get_unit_modifiers(&self,
+                          unit_id: UnitID,
+                          against_id: UnitID,
+                          defends: bool)
+                          -> Vec<Modifier> {
         let mut result = Vec::new();
         if defends {
             if let Some(m) = self.get_terrain_modifier(unit_id) {
@@ -125,13 +126,24 @@ impl LiveMap {
                 let defender = self.units.get(defender_id);
                 assert!(defender.owner() != Player::Me);
                 let attacker = self.units.get(unit_id);
-                let attacker_modifiers = self.get_unit_modifiers(attacker.id(), defender.id(), false);
-                let defender_modifiers = self.get_unit_modifiers(defender.id(), attacker.id(), true);
-                let combat_result = CombatStats::new(attacker, attacker_modifiers, defender, defender_modifiers);
+                let attacker_modifiers = self.get_unit_modifiers(attacker.id(),
+                                                                 defender.id(),
+                                                                 false);
+                let defender_modifiers = self.get_unit_modifiers(defender.id(),
+                                                                 attacker.id(),
+                                                                 true);
+                let combat_result = CombatStats::new(attacker,
+                                                     attacker_modifiers,
+                                                     defender,
+                                                     defender_modifiers);
                 return Some(combat_result);
             }
             let unit = self.units.get_mut(unit_id);
-            let cost = if livepath.is_exhausting() { unit.movements() } else { livepath.cost() };
+            let cost = if livepath.is_exhausting() {
+                unit.movements()
+            } else {
+                livepath.cost()
+            };
             unit.move_to(path.to(), cost);
         }
         None
@@ -164,8 +176,10 @@ impl LiveMap {
                         if cost < oldcost {
                             e.insert(path.clone());
                         }
-                    },
-                    Entry::Vacant(e) => { e.insert(path.clone()); },
+                    }
+                    Entry::Vacant(e) => {
+                        e.insert(path.clone());
+                    }
                 }
             }
             if cost >= unit.movements() {
@@ -177,7 +191,8 @@ impl LiveMap {
 }
 
 bitflags! {
-    #[doc="Movement hindrances on a particular position on a live map, from the perspective of a player."]
+    #[doc="Movement hindrances on a particular position on a live map,
+        from the perspective of a player."]
     flags Hindrances: u8 {
         #[doc="A unit is on the cell"]
         const HINDRANCE_UNIT = 0b01,
@@ -200,7 +215,7 @@ impl LivePath {
         fn get_hindrances(map: &LiveMap, pos: Pos, mover: Option<Player>) -> Hindrances {
             let mut result = Hindrances::empty();
             if let Some(mover_owner) = mover {
-                if let Some(u) =  map.units().get_at_pos(pos) {
+                if let Some(u) = map.units().get_at_pos(pos) {
                     result.insert(HINDRANCE_UNIT);
                     if u.owner() != mover_owner {
                         result.insert(HINDRANCE_ZOC);
@@ -254,12 +269,10 @@ impl LivePath {
             if hindrance.contains(HINDRANCE_ZOC) {
                 if was_zoc {
                     return true;
-                }
-                else {
+                } else {
                     was_zoc = true;
                 }
-            }
-            else {
+            } else {
                 was_zoc = false;
             }
         }
@@ -272,8 +285,7 @@ impl LivePath {
                 Some(p) => p != mover_owner,
                 None => false,
             }
-        }
-        else {
+        } else {
             false
         }
     }
@@ -282,11 +294,9 @@ impl LivePath {
     pub fn could_be_reachable(&self) -> bool {
         if self.mover.is_none() {
             false
-        }
-        else if self.terrain.iter().any(|t| !t.is_passable()) {
+        } else if self.terrain.iter().any(|t| !t.is_passable()) {
             false
-        }
-        else {
+        } else {
             !self.moves_through_zoc(false)
         }
     }
@@ -295,11 +305,9 @@ impl LivePath {
     pub fn is_reachable(&self) -> bool {
         if !self.could_be_reachable() {
             false
-        }
-        else if self.path.steps() == 0 {
+        } else if self.path.steps() == 0 {
             false
-        }
-        else {
+        } else {
             let last_pos_hindrance = self.hindrances.last().unwrap();
             !last_pos_hindrance.contains(HINDRANCE_UNIT) || self.is_attack()
         }

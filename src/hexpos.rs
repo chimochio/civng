@@ -1,9 +1,9 @@
-/* Copyright 2015 Virgil Dupras
- *
- * This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
- * which should be included with this package. The terms are also available at
- * http://www.gnu.org/licenses/gpl-3.0.html
- */
+// Copyright 2015 Virgil Dupras
+//
+// This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+// which should be included with this package. The terms are also available at
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
 
 //! Pure (UI-less) hex cell positioning logic. Inspired from this
 //! [awesome resrouce on the subject](http://www.redblobgames.com/grids/hexagons/).
@@ -33,14 +33,12 @@ pub enum Direction {
 
 impl Direction {
     pub fn all() -> [Direction; DIRECTION_COUNT] {
-        [
-            Direction::North,
-            Direction::NorthEast,
-            Direction::SouthEast,
-            Direction::South,
-            Direction::SouthWest,
-            Direction::NorthWest,
-        ]
+        [Direction::North,
+         Direction::NorthEast,
+         Direction::SouthEast,
+         Direction::South,
+         Direction::SouthWest,
+         Direction::NorthWest]
     }
 }
 
@@ -54,11 +52,7 @@ pub struct Pos {
 
 impl Pos {
     pub fn new(x: i32, y: i32, z: i32) -> Pos {
-        Pos {
-            x: x,
-            y: y,
-            z: z,
-        }
+        Pos { x: x, y: y, z: z }
     }
 
     /// Returns pos `(0, 0, 0)`
@@ -114,11 +108,7 @@ impl Pos {
     /// assert_eq!(pos1.translate(pos2), pos3);
     /// ```
     pub fn translate(&self, other: Pos) -> Pos {
-        Pos::new(
-            self.x + other.x,
-            self.y + other.y,
-            self.z + other.z,
-        )
+        Pos::new(self.x + other.x, self.y + other.y, self.z + other.z)
     }
 
     /// Multiplies `self` by `factor`.
@@ -138,11 +128,7 @@ impl Pos {
     /// assert_eq!(pos1, pos2);
     /// ```
     pub fn amplify(&self, factor: i32) -> Pos {
-        Pos::new(
-            self.x * factor,
-            self.y * factor,
-            self.z * factor,
-        )
+        Pos::new(self.x * factor, self.y * factor, self.z * factor)
     }
 
     /// Returns cell at the opposite side of the origin.
@@ -157,11 +143,7 @@ impl Pos {
     /// assert_eq!(pos1, pos2.neg());
     /// ```
     pub fn neg(&self) -> Pos {
-        Pos::new(
-            -self.x,
-            -self.y,
-            -self.z,
-        )
+        Pos::new(-self.x, -self.y, -self.z)
     }
 
     /// Returns a pos relative to `self` when moving in the specified `direction`.
@@ -170,12 +152,30 @@ impl Pos {
     pub fn neighbor(&self, direction: Direction) -> Pos {
         let mut p = *self;
         match direction {
-            Direction::North => { p.y += 1; p.z -= 1 },
-            Direction::NorthEast => { p.x += 1; p.z -= 1 },
-            Direction::SouthEast => { p.x += 1; p.y -= 1 },
-            Direction::South => { p.z += 1; p.y -= 1 },
-            Direction::SouthWest => { p.z += 1; p.x -= 1 },
-            Direction::NorthWest => { p.y += 1; p.x -= 1 },
+            Direction::North => {
+                p.y += 1;
+                p.z -= 1
+            }
+            Direction::NorthEast => {
+                p.x += 1;
+                p.z -= 1
+            }
+            Direction::SouthEast => {
+                p.x += 1;
+                p.y -= 1
+            }
+            Direction::South => {
+                p.z += 1;
+                p.y -= 1
+            }
+            Direction::SouthWest => {
+                p.z += 1;
+                p.x -= 1
+            }
+            Direction::NorthWest => {
+                p.y += 1;
+                p.x -= 1
+            }
         }
         p
     }
@@ -202,10 +202,7 @@ pub struct AxialPos {
 
 impl AxialPos {
     pub fn new(q: i32, r: i32) -> AxialPos {
-        AxialPos {
-            q: q,
-            r: r,
-        }
+        AxialPos { q: q, r: r }
     }
 
     pub fn to_pos(&self) -> Pos {
@@ -228,10 +225,7 @@ pub struct OffsetPos {
 
 impl OffsetPos {
     pub fn new(x: i32, y: i32) -> OffsetPos {
-        OffsetPos {
-            x: x,
-            y: y,
-        }
+        OffsetPos { x: x, y: y }
     }
 
     pub fn to_pos(&self) -> Pos {
@@ -256,9 +250,7 @@ pub struct PosPath {
 
 impl PosPath {
     pub fn new(origin: Pos) -> PosPath {
-        PosPath {
-            stack: vec![origin],
-        }
+        PosPath { stack: vec![origin] }
     }
 
     pub fn stack(&self) -> &[Pos] {
@@ -276,9 +268,8 @@ impl PosPath {
     /// Returns the position before the last in the path.
     pub fn before_last(&self) -> Option<Pos> {
         if self.stack.len() > 1 {
-            Some(self.stack[self.stack.len()-2])
-        }
-        else {
+            Some(self.stack[self.stack.len() - 2])
+        } else {
             None
         }
     }
@@ -301,8 +292,7 @@ impl PosPath {
         // We never pop origin
         if self.stack.len() > 1 {
             self.stack.pop()
-        }
-        else {
+        } else {
             None
         }
     }
@@ -325,7 +315,7 @@ impl PathWalker {
         }
     }
 
-    fn nextdir(dir: Direction) -> Option<Direction>{
+    fn nextdir(dir: Direction) -> Option<Direction> {
         match dir {
             Direction::North => Some(Direction::NorthEast),
             Direction::NorthEast => Some(Direction::SouthEast),
@@ -357,31 +347,28 @@ impl PathWalker {
                 }
                 Some(self.get_current_path())
             }
-            None => None
+            None => None,
         }
     }
 
     pub fn next(&mut self) -> Option<PosPath> {
         if self.max_depth == 0 {
             None
-        }
-        else if !self.backing_off && self.current_path.len() < self.max_depth {
+        } else if !self.backing_off && self.current_path.len() < self.max_depth {
             self.current_path.push(Direction::North);
             Some(self.get_current_path())
-        }
-        else {
+        } else {
             self.backing_off = false;
             if self.current_path.is_empty() {
                 None
-            }
-            else {
+            } else {
                 match self.tick() {
                     Some(p) => Some(p),
                     None => {
                         self.backoff();
                         let _ = self.current_path.pop();
                         self.next()
-                    },
+                    }
                 }
             }
         }

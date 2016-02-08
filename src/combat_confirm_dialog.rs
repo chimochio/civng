@@ -1,9 +1,9 @@
-/* Copyright 2015 Virgil Dupras
- *
- * This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
- * which should be included with this package. The terms are also available at
- * http://www.gnu.org/licenses/gpl-3.0.html
- */
+// Copyright 2015 Virgil Dupras
+//
+// This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+// which should be included with this package. The terms are also available at
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
 
 use std::cmp::max;
 
@@ -13,8 +13,9 @@ use rustty::ui::{Painter, HorizontalAlign, Dialog, DialogResult};
 use combat::CombatStats;
 
 pub fn create_combat_confirm_dialog(result: &CombatStats) -> Dialog {
-    let modscount = max(result.attacker_modifiers.len(), result.defender_modifiers.len());
-    let mut d = Dialog::new(55, 11+modscount);
+    let modscount = max(result.attacker_modifiers.len(),
+                        result.defender_modifiers.len());
+    let mut d = Dialog::new(55, 11 + modscount);
     {
         let w = d.window_mut();
         w.clear(Cell::default());
@@ -25,18 +26,28 @@ pub fn create_combat_confirm_dialog(result: &CombatStats) -> Dialog {
         let admgfmt = format!("{}-{}", amin, amax);
         let (dmin, dmax) = result.dmgrange_to_defender();
         let ddmgfmt = format!("{}-{}", dmin, dmax);
-        let lines = [
-            format!("Name          | {:<15} | {:<15}", result.attacker_name, result.defender_name),
-            format!("Base Strength | {:<15} | {:<15}", result.attacker_base_strength, result.defender_base_strength),
-            format!("Real Strength | {:<15.1} | {:<15.1}", result.attacker_strength(), result.defender_strength()),
-            format!("HP            | {:<15} | {:<15}", result.attacker_starting_hp, result.defender_starting_hp),
-            format!("Dmg incoming  | {:<15} | {:<15}", admgfmt, ddmgfmt),
-        ];
+        let lines = [format!("Name          | {:<15} | {:<15}",
+                             result.attacker_name,
+                             result.defender_name),
+                     format!("Base Strength | {:<15} | {:<15}",
+                             result.attacker_base_strength,
+                             result.defender_base_strength),
+                     format!("Real Strength | {:<15.1} | {:<15.1}",
+                             result.attacker_strength(),
+                             result.defender_strength()),
+                     format!("HP            | {:<15} | {:<15}",
+                             result.attacker_starting_hp,
+                             result.defender_starting_hp),
+                     format!("Dmg incoming  | {:<15} | {:<15}", admgfmt, ddmgfmt)];
         for (i, s) in lines.iter().enumerate() {
-            w.printline(2, 3+i, &s[..]);
+            w.printline(2, 3 + i, &s[..]);
         }
         for i in 0..modscount {
-            let title = if i == 0 { "Modifiers" } else { "" };
+            let title = if i == 0 {
+                "Modifiers"
+            } else {
+                ""
+            };
             let amod = match result.attacker_modifiers.get(i) {
                 Some(m) => m.description(),
                 None => "".to_owned(),
@@ -45,7 +56,9 @@ pub fn create_combat_confirm_dialog(result: &CombatStats) -> Dialog {
                 Some(m) => m.description(),
                 None => "".to_owned(),
             };
-            w.printline(2, 8+i, &format!("{:<13} | {:<15} | {:15}", title, amod, dmod)[..]);
+            w.printline(2,
+                        8 + i,
+                        &format!("{:<13} | {:<15} | {:15}", title, amod, dmod)[..]);
         }
     }
     d.add_button("Attack", 'a', DialogResult::Ok);
@@ -54,4 +67,3 @@ pub fn create_combat_confirm_dialog(result: &CombatStats) -> Dialog {
     d.window_mut().draw_box();
     d
 }
-

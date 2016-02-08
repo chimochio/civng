@@ -1,9 +1,9 @@
-/* Copyright 2015 Virgil Dupras
- *
- * This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
- * which should be included with this package. The terms are also available at
- * http://www.gnu.org/licenses/gpl-3.0.html
- */
+// Copyright 2015 Virgil Dupras
+//
+// This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+// which should be included with this package. The terms are also available at
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
 
 //! Unit management logic.
 
@@ -132,7 +132,6 @@ impl Unit {
     pub fn refresh(&mut self) {
         self.movements = 2;
     }
-
 }
 
 pub struct Units {
@@ -148,15 +147,15 @@ impl Units {
         }
     }
 
-    pub fn all_units<'a>(&'a self) -> Box<Iterator<Item=&'a Unit> + 'a> {
+    pub fn all_units<'a>(&'a self) -> Box<Iterator<Item = &'a Unit> + 'a> {
         Box::new(self.units.values().filter(|u| !u.is_dead()))
     }
 
-    pub fn my_units<'a>(&'a self) -> Box<Iterator<Item=&'a Unit> + 'a>{
+    pub fn my_units<'a>(&'a self) -> Box<Iterator<Item = &'a Unit> + 'a> {
         Box::new(self.all_units().filter(|u| u.owner() == Player::Me))
     }
 
-    pub fn enemy_units<'a>(&'a self) -> Box<Iterator<Item=&'a Unit> + 'a>{
+    pub fn enemy_units<'a>(&'a self) -> Box<Iterator<Item = &'a Unit> + 'a> {
         Box::new(self.all_units().filter(|u| u.owner() == Player::NotMe))
     }
 
@@ -202,8 +201,7 @@ impl Units {
                     if result_after.is_none() || result_after.unwrap() > unit.id() {
                         result_after = Some(unit.id());
                     }
-                }
-                else {
+                } else {
                     if result_before.is_none() || result_before.unwrap() > unit.id() {
                         result_before = Some(unit.id());
                     }
@@ -228,8 +226,7 @@ impl Units {
         for (_, unit) in self.units.iter_mut() {
             if !unit.is_dead() {
                 unit.refresh();
-            }
-            else {
+            } else {
                 dead_unitids.insert(unit.id());
             }
         }
@@ -250,4 +247,3 @@ impl Units {
         self.unit_at_pos(pos).map(|uid| self.get(uid))
     }
 }
-

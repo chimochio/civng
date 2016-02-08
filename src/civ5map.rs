@@ -1,9 +1,9 @@
-/* Copyright 2015 Virgil Dupras
- *
- * This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
- * which should be included with this package. The terms are also available at
- * http://www.gnu.org/licenses/gpl-3.0.html
- */
+// Copyright 2015 Virgil Dupras
+//
+// This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+// which should be included with this package. The terms are also available at
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
 
 use std::path::Path;
 use std::fs::File;
@@ -92,7 +92,7 @@ fn load_map_header(fp: &mut File) -> MapHeader {
     }
 }
 
-fn load_map_tiles(fp: &mut File, len: u32) -> Vec<MapTile>{
+fn load_map_tiles(fp: &mut File, len: u32) -> Vec<MapTile> {
     let mut result: Vec<MapTile> = Vec::new();
     for _ in 0..len {
         let mut bytes: [u8; 8] = [0; 8];
@@ -116,27 +116,26 @@ pub fn load_civ5map(path: &Path) -> TerrainMap {
     let mh = load_map_header(&mut fp);
     let tiles = load_map_tiles(&mut fp, mh.width * mh.height);
     let mut mapdata: Vec<Terrain> = Vec::new();
-    let name2terrain = HashMap::<&str, Terrain>::from_iter(
-        vec![
+    let name2terrain = HashMap::<&str, Terrain>::from_iter(vec![
             ("TERRAIN_COAST", Terrain::Water),
             ("TERRAIN_OCEAN", Terrain::Water),
             ("TERRAIN_GRASS", Terrain::Grassland),
             ("TERRAIN_PLAINS", Terrain::Plain),
             ("TERRAIN_DESERT", Terrain::Desert),
-        ]
-    );
+        ]);
     for tile in tiles.iter() {
         let name = &mh.terrain[tile.terrain_id as usize];
         let terrain = match tile.elevation {
             1 => Terrain::Hill,
             2 => Terrain::Mountain,
-            _ => match name2terrain.get(&name[..]) {
-                Some(t) => *t,
-                None => Terrain::Desert,
+            _ => {
+                match name2terrain.get(&name[..]) {
+                    Some(t) => *t,
+                    None => Terrain::Desert,
+                }
             }
         };
         mapdata.push(terrain);
     }
     TerrainMap::new(mh.width as i32, mh.height as i32, mapdata)
 }
-

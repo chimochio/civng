@@ -1,9 +1,9 @@
-/* Copyright 2015 Virgil Dupras
- *
- * This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
- * which should be included with this package. The terms are also available at
- * http://www.gnu.org/licenses/gpl-3.0.html
- */
+// Copyright 2015 Virgil Dupras
+//
+// This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+// which should be included with this package. The terms are also available at
+// http://www.gnu.org/licenses/gpl-3.0.html
+//
 
 //! Manages map information (terrain and stuff).
 //!
@@ -36,14 +36,12 @@ pub enum Terrain {
 
 impl Terrain {
     pub fn all() -> [Terrain; 6] {
-        [
-            Terrain::Plain,
-            Terrain::Grassland,
-            Terrain::Desert,
-            Terrain::Hill,
-            Terrain::Mountain,
-            Terrain::Water,
-        ]
+        [Terrain::Plain,
+         Terrain::Grassland,
+         Terrain::Desert,
+         Terrain::Hill,
+         Terrain::Mountain,
+         Terrain::Water]
     }
 
     /// Returns the character representing a particular terrain on screen.
@@ -112,7 +110,7 @@ pub struct TilesIterator<'a> {
 }
 
 impl<'a> TilesIterator<'a> {
-    pub fn new(terrain_iter: Iter<Terrain>, map_width: i32) -> TilesIterator{
+    pub fn new(terrain_iter: Iter<Terrain>, map_width: i32) -> TilesIterator {
         TilesIterator {
             map_width: map_width,
             counter: 0,
@@ -162,11 +160,9 @@ impl TerrainMap {
     ///
     /// Useful for testing.
     pub fn empty_map(width: i32, height: i32) -> TerrainMap {
-        TerrainMap::new(
-            width,
-            height,
-            vec![Terrain::Grassland; (width * height) as usize],
-        )
+        TerrainMap::new(width,
+                        height,
+                        vec![Terrain::Grassland; (width * height) as usize])
     }
 
     /// Loads terrain map from text file.
@@ -182,9 +178,9 @@ impl TerrainMap {
         let mut width: Option<i32> = None;
         let mut chcount: i32 = 0;
         let allterrain = Terrain::all();
-        let char2terrain = HashMap::<char, &Terrain>::from_iter(
-            allterrain.iter().map(|t| (t.map_char(), t))
-        );
+        let char2terrain = HashMap::<char, &Terrain>::from_iter(allterrain.iter().map(|t| {
+            (t.map_char(), t)
+        }));
         let mut data: Vec<Terrain> = Vec::new();
         for byte in fp.bytes() {
             let ch = match byte {
@@ -193,16 +189,15 @@ impl TerrainMap {
             };
             if ch == '\n' {
                 match width {
-                    Some(w) => { assert!(chcount == w) },
-                    None => { width = Some(data.len() as i32) },
+                    Some(w) => assert!(chcount == w),
+                    None => width = Some(data.len() as i32),
                 }
                 chcount = 0;
-            }
-            else {
+            } else {
                 chcount += 1;
                 match char2terrain.get(&ch) {
-                    Some(t) => { data.push(**t) },
-                    None => { data.push(Terrain::Water) },
+                    Some(t) => data.push(**t),
+                    None => data.push(Terrain::Water),
                 };
             }
         }
@@ -221,7 +216,7 @@ impl TerrainMap {
         let opos = pos.to_offset_pos();
         if opos.x < 0 || opos.y < 0 || opos.x >= self.width || opos.y >= self.height {
             // out of bounds
-            return Terrain::OutOfBounds
+            return Terrain::OutOfBounds;
         }
         self.data[(opos.y * self.width + opos.x) as usize]
     }
@@ -234,4 +229,3 @@ impl TerrainMap {
         path.stack()[1..].iter().fold(0, |acc, &p| acc + self.get_terrain(p).movement_cost())
     }
 }
-
