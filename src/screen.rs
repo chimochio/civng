@@ -12,8 +12,7 @@ use std::cmp::{min, max};
 
 use num::integer::Integer;
 
-// Re-export for doctests
-pub use rustty::{Terminal, CellAccessor, HasPosition, HasSize, Cell, Attr, Color};
+use rustty::{Terminal, CellAccessor, HasPosition, HasSize, Cell, Attr, Color};
 use rustty::Pos as ScreenPos;
 use rustty::ui::{Painter, Alignable, HorizontalAlign, VerticalAlign, Widget};
 
@@ -202,10 +201,12 @@ impl Screen {
     /// # Examples
     ///
     /// ```
+    /// use civng::Terminal;
     /// use civng::screen::Screen;
     /// use civng::hexpos::{Pos, Direction};
     ///
-    /// let mut screen = Screen::new();
+    /// let term = Terminal::new().unwrap();
+    /// let mut screen = Screen::new(&term);
     /// // Scrolls the screen SW by 3 cells.
     /// screen.scroll(Pos::vector(Direction::SouthEast).amplify(3));
     /// ```
@@ -223,11 +224,13 @@ impl Screen {
     /// # Examples
     ///
     /// ```
+    /// use civng::Terminal;
     /// use civng::screen::Screen;
     /// use civng::terrain::TerrainMap;
     /// use civng::hexpos::{OffsetPos};
     ///
-    /// let mut screen = Screen::new();
+    /// let term = Terminal::new().unwrap();
+    /// let mut screen = Screen::new(&term);
     /// let map = TerrainMap::empty_map(42, 42);
     /// let pos = OffsetPos::new(21, 21).to_pos();
     /// // Our screen now shows the center of the terrain map

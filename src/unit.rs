@@ -21,11 +21,30 @@ pub enum Player {
     NotMe,
 }
 
+#[derive(Clone, Copy)]
+pub enum UnitType {
+    Fighter,
+}
+
+impl UnitType {
+    fn map_symbol(&self) -> char {
+        match *self {
+            UnitType::Fighter => { 'F' }
+        }
+    }
+
+    fn name(&self) -> &str {
+        match *self {
+            UnitType::Fighter => { "Fighter" }
+        }
+    }
+}
+
 /// A unit on a map.
 pub struct Unit {
     id: UnitID,
-    /// Name of the unit
-    name: String,
+    /// Type of the unit
+    type_: UnitType,
     /// Position on the map
     pos: Pos,
     /// Movement points left this turn
@@ -37,10 +56,10 @@ pub struct Unit {
 }
 
 impl Unit {
-    pub fn new(name: &str, owner: Player, pos: Pos) -> Unit {
+    pub fn new(type_: UnitType, owner: Player, pos: Pos) -> Unit {
         Unit {
             id: 0, // set in Units::add_unit()
-            name: name.to_owned(),
+            type_: type_,
             pos: pos,
             movements: 0,
             strength: 8,
@@ -70,7 +89,7 @@ impl Unit {
     }
 
     pub fn name(&self) -> &str {
-        &self.name[..]
+        self.type_.name()
     }
 
     pub fn owner(&self) -> Player {
@@ -80,18 +99,18 @@ impl Unit {
 
     /// One letter symbol to represent the unit with on the map.
     ///
-    /// For now, it's the first letter of the name.
+    /// Usually the first letter od the base unit type.
     ///
     /// # Examples
     ///
     /// ```
-    /// use civng::unit::{Unit, Player};
+    /// use civng::unit::{Unit, UnitType, Player};
     /// use civng::hexpos::Pos;
     ///
-    /// assert_eq!(Unit::new("Vincent", Player::Me, Pos::origin()).map_symbol(), 'V');
+    /// assert_eq!(Unit::new(UnitType::Fighter, Player::Me, Pos::origin()).map_symbol(), 'F');
     /// ```
     pub fn map_symbol(&self) -> char {
-        self.name.chars().next().unwrap()
+        self.type_.map_symbol()
     }
 
     /// Whether the unit as exhausted all movement points this turn.
@@ -110,11 +129,11 @@ impl Unit {
     /// # Examples
     ///
     /// ```
-    /// use civng::unit::{Unit, Player};
+    /// use civng::unit::{Unit, UnitType, Player};
     /// use civng::hexpos::{Pos, Direction};
     /// use civng::terrain::Terrain;
     ///
-    /// let mut unit = Unit::new("Jules", Player::Me, Pos::origin());
+    /// let mut unit = Unit::new(UnitType::Fighter, Player::Me, Pos::origin());
     /// unit.refresh();
     /// let newpos = Pos::origin().neighbor(Direction::South);
     /// unit.move_to(newpos, 1);

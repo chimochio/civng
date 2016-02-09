@@ -8,7 +8,7 @@
 use std::path::Path;
 
 use civng::game::Game;
-use civng::unit::{Unit, Player};
+use civng::unit::{Unit, UnitType, Player};
 use civng::hexpos::{Pos, OffsetPos};
 
 extern crate rustty;
@@ -17,13 +17,13 @@ extern crate civng;
 fn main() {
     let mut game = Game::new(Path::new("resources/pangea-duel.Civ5Map"));
     let unitpos = game.map().first_passable(Pos::origin());
-    let _ = game.add_unit(Unit::new("Lenny", Player::Me, unitpos));
+    let _ = game.add_unit(Unit::new(UnitType::Fighter, Player::Me, unitpos));
     let unitpos = game.map().first_passable(Pos::origin());
-    let _ = game.add_unit(Unit::new("Benny", Player::Me, unitpos));
+    let _ = game.add_unit(Unit::new(UnitType::Fighter, Player::Me, unitpos));
     let unitpos = game.map().first_passable(OffsetPos::new(4, 3).to_pos());
-    let _ = game.add_unit(Unit::new("Evil Man", Player::NotMe, unitpos));
+    let _ = game.add_unit(Unit::new(UnitType::Fighter, Player::NotMe, unitpos));
     let unitpos = game.map().first_passable(OffsetPos::new(4, 3).to_pos());
-    let _ = game.add_unit(Unit::new("Evil Man", Player::NotMe, unitpos));
+    let _ = game.add_unit(Unit::new(UnitType::Fighter, Player::NotMe, unitpos));
     game.new_turn();
     loop {
         game.draw();

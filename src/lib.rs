@@ -17,6 +17,10 @@
 // This library is also the starting point for our API doc (not main.rs)
 //
 
+// Makes doctest so much simpler... Instead of having to declare extern crates in doctest, we
+// simply import rustty stuff from the civng namespace.
+pub use rustty::{Terminal, CellAccessor, HasPosition, HasSize, Cell, Attr, Color};
+
 extern crate num;
 extern crate rustty;
 extern crate byteorder;
