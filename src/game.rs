@@ -178,7 +178,10 @@ impl Game {
                 self.details_window.draw_into(&mut self.term);
                 if let Some(ref mut d) = self.current_dialog {
                     let w = d.window_mut();
-                    w.align(&self.term, HorizontalAlign::Middle, VerticalAlign::Middle, 0);
+                    w.align(&self.term,
+                            HorizontalAlign::Middle,
+                            VerticalAlign::Middle,
+                            0);
                     w.draw_into(&mut self.term);
                 }
             }

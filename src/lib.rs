@@ -19,7 +19,7 @@
 
 // Makes doctest so much simpler... Instead of having to declare extern crates in doctest, we
 // simply import rustty stuff from the civng namespace.
-pub use rustty::ui::{Widget};
+pub use rustty::ui::Widget;
 
 extern crate num;
 extern crate rustty;

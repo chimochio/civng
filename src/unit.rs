@@ -29,13 +29,13 @@ pub enum UnitType {
 impl UnitType {
     fn map_symbol(&self) -> char {
         match *self {
-            UnitType::Fighter => { 'F' }
+            UnitType::Fighter => 'F',
         }
     }
 
     fn name(&self) -> &str {
         match *self {
-            UnitType::Fighter => { "Fighter" }
+            UnitType::Fighter => "Fighter",
         }
     }
 }
