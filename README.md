@@ -17,8 +17,8 @@ Very early. Features:
 
 * Text-based hexagonal tiles UI.
 * Loads ".Civ5Map" files.
-* Move around Larry (`L`) and Benny (`B`).
-* Combat! Meet Evil Man (`E`), an enemy unit shown in red somewhere on the map and fight him!
+* Move your units (blue) around.
+* Fight enemy units (red).
 * Nice pre/post combat dialogs with neat info.
 * Some combat modifiers, such as terrain and flanking.
 * Basic terrain types, with some of them impassable.
