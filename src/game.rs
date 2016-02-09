@@ -8,7 +8,7 @@
 use std::path::Path;
 
 use rustty::{Event, CellAccessor, Terminal};
-use rustty::ui::{Dialog, DialogResult};
+use rustty::ui::{Dialog, DialogResult, HorizontalAlign, VerticalAlign, Alignable};
 
 use hexpos::{Pos, Direction};
 use unit::{Unit, UnitID};
@@ -21,6 +21,7 @@ use combat_confirm_dialog::create_combat_confirm_dialog;
 use selection::Selection;
 use ai::wander;
 use overhead::draw_overhead_map;
+use details_window::DetailsWindow;
 
 #[derive(Clone)]
 enum MainloopState {
@@ -62,6 +63,7 @@ pub struct Game {
     turn: u16,
     selection: Selection,
     show_pos_markers: bool,
+    details_window: DetailsWindow,
     current_dialog: Option<Dialog>,
 }
 
@@ -69,6 +71,7 @@ impl Game {
     pub fn new(map_path: &Path) -> Game {
         let term = Terminal::new().unwrap();
         let screen = Screen::new(&term);
+        let details_window = DetailsWindow::new(&term);
         Game {
             state: MainloopState::Normal,
             movemode: MovementMode::Normal,
@@ -81,6 +84,7 @@ impl Game {
             turn: 0,
             selection: Selection::new(),
             show_pos_markers: false,
+            details_window: details_window,
             current_dialog: None,
         }
     }
@@ -108,7 +112,7 @@ impl Game {
             _ => "",
         };
         let selected_pos = self.selection.pos.or(self.active_unit().map(|u| u.pos()));
-        self.screen.details_window.update(selected_pos, &self.map, self.turn, movemode);
+        self.details_window.update(selected_pos, &self.map, self.turn, movemode);
     }
 
     fn play_ai_turn(&mut self) {
@@ -156,6 +160,7 @@ impl Game {
     }
 
     pub fn draw(&mut self) {
+        let _ = self.term.clear();
         match self.state {
             MainloopState::OverheadMap => {
                 let selected_pos = self.selection
@@ -164,18 +169,21 @@ impl Game {
                 draw_overhead_map(&mut self.term, self.map.terrain(), selected_pos);
             }
             _ => {
-                let popup = match self.current_dialog {
-                    Some(ref mut d) => Some(d.window_mut()),
-                    None => None,
-                };
                 let options = DrawOptions {
                     pos_markers: self.show_pos_markers,
                     highlight_reachable_pos: self.movemode == MovementMode::Move,
                 };
                 self.screen.update_screen_size(&self.term);
-                self.screen.draw(&mut self.term, &self.map, &self.selection, popup, options);
+                self.screen.draw(&mut self.term, &self.map, &self.selection, options);
+                self.details_window.draw_into(&mut self.term);
+                if let Some(ref mut d) = self.current_dialog {
+                    let w = d.window_mut();
+                    w.align(&self.term, HorizontalAlign::Middle, VerticalAlign::Middle, 0);
+                    w.draw_into(&mut self.term);
+                }
             }
         }
+        let _ = self.term.swap_buffers();
     }
 
     /// Returns whether the keypress was handled by the current dialog.
