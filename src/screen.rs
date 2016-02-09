@@ -5,7 +5,7 @@
 // http://www.gnu.org/licenses/gpl-3.0.html
 //
 
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::cmp::{min, max};
 
 use num::integer::Integer;
@@ -136,12 +136,11 @@ impl HexCell {
 }
 
 /// Various display options that can be enabled in `Screen`.
-#[derive(Clone, Copy)]
 pub struct DrawOptions {
     /// Show positional markers in each hex cell.
     pub pos_markers: bool,
-    /// Whether we highlight cells that we can reach.
-    pub highlight_reachable_pos: bool,
+    /// Positions to highlight in yellow.
+    pub positions_to_highlight: Option<HashSet<Pos>>,
 }
 /// Takes care of drawing our main map.
 pub struct Screen {
@@ -311,10 +310,6 @@ impl Screen {
                 selection: &Selection,
                 options: DrawOptions) {
         self.map_size = map.terrain().size();
-        let reachablepos = match selection.unit_id {
-            Some(uid) => map.reachable_pos(uid),
-            None => HashMap::new(),
-        };
         for cell in self.cells.iter_mut() {
             let pos = cell.pos().translate(self.topleft);
             cell.clear();
@@ -332,10 +327,10 @@ impl Screen {
                 let is_active = selection.is_unit_active(unit.id());
                 cell.draw_unit(unit, is_active);
             }
-            if options.highlight_reachable_pos {
+            if let Some(ref highlight_pos) = options.positions_to_highlight {
                 if selection.pos.is_some() && pos == selection.pos.unwrap() {
                     cell.highlight(Color::Blue)
-                } else if reachablepos.contains_key(&pos) {
+                } else if highlight_pos.contains(&pos) {
                     let mut color = Color::Yellow;
                     if let Some(u) = map.units().get_at_pos(pos) {
                         if u.owner() != Player::Me {

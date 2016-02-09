@@ -27,6 +27,7 @@ Very early. Features:
 * Active unit is colored and its reachable cells are highlighted in yellow.
 * Move mode allowing to step over friendly units.
 * Overhead terrain map.
+* Unit types: Melee and Ranged.
 
 ## Requirements
 
@@ -71,9 +72,9 @@ This changes significantly how maps look, but it shouldn't affect gameplay.
 
 ## Usage
 
-The app starts with the top left cell of the screen being the top left cell of the map. There are
-two units, Larry and Benny (`L` and `B`) which move in turns. You can move it with `w/a/s/d/q/e`
-or with the numpad *with numlock turned on*.
+The app starts with the top left cell of the screen being the top left cell of the map. You have
+two units, the blue `M` and `R` (Melee and Ranged) which move in turns. You can move it with
+`w/a/s/d/q/e` or with the numpad *with numlock turned on*.
 
 Each unit has two movements per turn. You can cycle through active units with `.`. You start a new
 turn by pressing Return.
@@ -81,7 +82,10 @@ turn by pressing Return.
 The cells highlighted in yellow around the active units are cells where that unit can move this
 turn. You can press `m` to active the "Move Mode" which enabled a blue cell selector. Move this
 selector around freely (it doesn't move the unit right away) and press Return when you've selected
-your destination. Press `m` again to cancel. You can't attack yet with the move mode.
+your destination. Press `m` again to cancel.
+
+If the active unit is a Ranged unit, you can press `b` to bombard. Bombard looks a lot like Move,
+but for now it doesn't do anything.
 
 If you move on a tile with an enemy unit on it, you initiate a melee attack automatically. If you
 win, you move on the enemy's tile.

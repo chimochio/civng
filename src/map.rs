@@ -188,6 +188,16 @@ impl LiveMap {
         }
         result
     }
+
+    pub fn bombardable_pos(&self, unit_id: UnitID) -> HashMap<Pos, PosPath> {
+        let unit = self.units.get(unit_id);
+        let mut result = HashMap::new();
+        let mut walker = PathWalker::new(unit.pos(), unit.type_().range() as usize);
+        while let Some(path) = walker.next() {
+            result.insert(path.to(), path);
+        }
+        result
+    }
 }
 
 bitflags! {

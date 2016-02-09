@@ -17,13 +17,13 @@ extern crate civng;
 fn main() {
     let mut game = Game::new(Path::new("resources/pangea-duel.Civ5Map"));
     let unitpos = game.map().first_passable(Pos::origin());
-    let _ = game.add_unit(Unit::new(UnitType::Fighter, Player::Me, unitpos));
+    let _ = game.add_unit(Unit::new(UnitType::Melee, Player::Me, unitpos));
     let unitpos = game.map().first_passable(Pos::origin());
-    let _ = game.add_unit(Unit::new(UnitType::Fighter, Player::Me, unitpos));
+    let _ = game.add_unit(Unit::new(UnitType::Ranged, Player::Me, unitpos));
     let unitpos = game.map().first_passable(OffsetPos::new(4, 3).to_pos());
-    let _ = game.add_unit(Unit::new(UnitType::Fighter, Player::NotMe, unitpos));
+    let _ = game.add_unit(Unit::new(UnitType::Melee, Player::NotMe, unitpos));
     let unitpos = game.map().first_passable(OffsetPos::new(4, 3).to_pos());
-    let _ = game.add_unit(Unit::new(UnitType::Fighter, Player::NotMe, unitpos));
+    let _ = game.add_unit(Unit::new(UnitType::Melee, Player::NotMe, unitpos));
     game.new_turn();
     loop {
         game.draw();

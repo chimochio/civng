@@ -23,19 +23,40 @@ pub enum Player {
 
 #[derive(Clone, Copy)]
 pub enum UnitType {
-    Fighter,
+    Melee,
+    Ranged,
 }
 
 impl UnitType {
-    fn map_symbol(&self) -> char {
+    pub fn map_symbol(&self) -> char {
         match *self {
-            UnitType::Fighter => 'F',
+            UnitType::Melee => 'M',
+            UnitType::Ranged => 'R',
         }
     }
 
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         match *self {
-            UnitType::Fighter => "Fighter",
+            UnitType::Melee => "Melee",
+            UnitType::Ranged => "Ranged",
+        }
+    }
+
+    pub fn strength(&self) -> u8 {
+        match *self {
+            UnitType::Melee => 8,
+            UnitType::Ranged => 5,
+        }
+    }
+
+    pub fn movements_per_turn(&self) -> u8 {
+        2
+    }
+
+    pub fn range(&self) -> u8 {
+        match *self {
+            UnitType::Melee => 0,
+            UnitType::Ranged => 2,
         }
     }
 }
@@ -49,7 +70,6 @@ pub struct Unit {
     pos: Pos,
     /// Movement points left this turn
     movements: u8,
-    strength: u8,
     hp: u8,
     /// Player the unit belongs to
     owner: Player,
@@ -62,7 +82,6 @@ impl Unit {
             type_: type_,
             pos: pos,
             movements: 0,
-            strength: 8,
             hp: 100,
             owner: owner,
         }
@@ -70,6 +89,10 @@ impl Unit {
 
     pub fn id(&self) -> usize {
         self.id
+    }
+
+    pub fn type_(&self) -> UnitType {
+        self.type_
     }
 
     pub fn pos(&self) -> Pos {
@@ -81,7 +104,7 @@ impl Unit {
     }
 
     pub fn strength(&self) -> u8 {
-        self.strength
+        self.type_.strength()
     }
 
     pub fn hp(&self) -> u8 {
@@ -107,7 +130,7 @@ impl Unit {
     /// use civng::unit::{Unit, UnitType, Player};
     /// use civng::hexpos::Pos;
     ///
-    /// assert_eq!(Unit::new(UnitType::Fighter, Player::Me, Pos::origin()).map_symbol(), 'F');
+    /// assert_eq!(Unit::new(UnitType::Melee, Player::Me, Pos::origin()).map_symbol(), 'M');
     /// ```
     pub fn map_symbol(&self) -> char {
         self.type_.map_symbol()
@@ -133,7 +156,7 @@ impl Unit {
     /// use civng::hexpos::{Pos, Direction};
     /// use civng::terrain::Terrain;
     ///
-    /// let mut unit = Unit::new(UnitType::Fighter, Player::Me, Pos::origin());
+    /// let mut unit = Unit::new(UnitType::Melee, Player::Me, Pos::origin());
     /// unit.refresh();
     /// let newpos = Pos::origin().neighbor(Direction::South);
     /// unit.move_to(newpos, 1);
@@ -149,7 +172,7 @@ impl Unit {
     ///
     /// That is, regenerates its movement points.
     pub fn refresh(&mut self) {
-        self.movements = 2;
+        self.movements = self.type_.movements_per_turn();
     }
 }
 

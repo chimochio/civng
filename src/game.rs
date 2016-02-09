@@ -6,6 +6,7 @@
 //
 
 use std::path::Path;
+use std::collections::HashSet;
 
 use rustty::{Event, CellAccessor, Terminal};
 use rustty::ui::{Dialog, DialogResult, HorizontalAlign, VerticalAlign, Alignable};
@@ -40,6 +41,8 @@ enum MovementMode {
     Scroll,
     /// We move the selected pos in the reachable range of the the active unit.
     Move,
+    /// We're selecting someone to bombard.
+    Bombard,
 }
 
 fn direction_for_key(key: char) -> Option<Direction> {
@@ -169,9 +172,30 @@ impl Game {
                 draw_overhead_map(&mut self.term, self.map.terrain(), selected_pos);
             }
             _ => {
+                let positions_to_highlight = match self.movemode {
+                    MovementMode::Move => {
+                        if let Some(uid) = self.selection.unit_id {
+                            let posmap = self.map.reachable_pos(uid);
+                            let result: HashSet<Pos> = posmap.keys().map(|x| *x).collect();
+                            Some(result)
+                        } else {
+                            None
+                        }
+                    }
+                    MovementMode::Bombard => {
+                        if let Some(uid) = self.selection.unit_id {
+                            let posmap = self.map.bombardable_pos(uid);
+                            let result: HashSet<Pos> = posmap.keys().map(|x| *x).collect();
+                            Some(result)
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                };
                 let options = DrawOptions {
                     pos_markers: self.show_pos_markers,
-                    highlight_reachable_pos: self.movemode == MovementMode::Move,
+                    positions_to_highlight: positions_to_highlight,
                 };
                 self.screen.update_screen_size(&self.term);
                 self.screen.draw(&mut self.term, &self.map, &self.selection, options);
@@ -252,14 +276,26 @@ impl Game {
                 self.update_details();
             }
             'm' => {
-                match self.movemode {
-                    MovementMode::Move => {
-                        self.movemode = MovementMode::Normal;
-                        self.selection.pos = None;
+                if self.movemode == MovementMode::Move {
+                    self.movemode = MovementMode::Normal;
+                    self.selection.pos = None;
+                } else {
+                    if let Some(selpos) = self.active_unit().map(|u| u.pos()) {
+                        self.movemode = MovementMode::Move;
+                        self.selection.pos = Some(selpos);
                     }
-                    _ => {
-                        if let Some(selpos) = self.active_unit().map(|u| u.pos()) {
-                            self.movemode = MovementMode::Move;
+                }
+                self.update_details();
+            }
+            'b' => {
+                if self.movemode == MovementMode::Bombard {
+                    self.movemode = MovementMode::Normal;
+                    self.selection.pos = None;
+                } else {
+                    if let Some((selpos, range)) = self.active_unit()
+                                                       .map(|u| (u.pos(), u.type_().range())) {
+                        if range > 0 {
+                            self.movemode = MovementMode::Bombard;
                             self.selection.pos = Some(selpos);
                         }
                     }
@@ -305,7 +341,7 @@ impl Game {
                         MovementMode::Scroll => {
                             self.screen.scroll(Pos::origin().neighbor(d));
                         }
-                        MovementMode::Move => {
+                        MovementMode::Move | MovementMode::Bombard => {
                             self.selection.pos = Some(self.selection.pos.unwrap().neighbor(d));
                             self.update_details();
                         }
