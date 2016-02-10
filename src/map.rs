@@ -1,4 +1,4 @@
-// Copyright 2015 Virgil Dupras
+// Copyright 2016 Virgil Dupras
 //
 // This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 // which should be included with this package. The terms are also available at
@@ -191,10 +191,16 @@ impl LiveMap {
 
     pub fn bombardable_pos(&self, unit_id: UnitID) -> HashMap<Pos, PosPath> {
         let unit = self.units.get(unit_id);
+        let unit_height = self.terrain().get_terrain(unit.pos()).height();
         let mut result = HashMap::new();
         let mut walker = PathWalker::new(unit.pos(), unit.type_().range() as usize);
         while let Some(path) = walker.next() {
+            let tile_height = self.terrain().get_terrain(path.to()).height();
             result.insert(path.to(), path);
+            if tile_height > unit_height {
+                // We've lost line of sight. We can bombard this tile, but no further.
+                walker.backoff();
+            }
         }
         result
     }

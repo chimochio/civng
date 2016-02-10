@@ -1,4 +1,4 @@
-// Copyright 2015 Virgil Dupras
+// Copyright 2016 Virgil Dupras
 //
 // This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 // which should be included with this package. The terms are also available at
@@ -66,6 +66,21 @@ impl Terrain {
             Terrain::Mountain => "Mountain",
             Terrain::Water => "Water",
             Terrain::OutOfBounds => "Out of bounds",
+        }
+    }
+
+    /// Conceptual relative height of a terrain type.
+    ///
+    /// This is used for determining line of sight.
+    pub fn height(&self) -> u8 {
+        match *self {
+            Terrain::Plain => 0,
+            Terrain::Grassland => 0,
+            Terrain::Desert => 0,
+            Terrain::Hill => 1,
+            Terrain::Mountain => 2,
+            Terrain::Water => 0,
+            Terrain::OutOfBounds => 0,
         }
     }
 
