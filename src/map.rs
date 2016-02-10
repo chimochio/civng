@@ -115,6 +115,14 @@ impl LiveMap {
         result
     }
 
+    fn get_combat_stats(&self, attacker_id: UnitID, defender_id: UnitID) -> CombatStats {
+        let attacker = self.units.get(attacker_id);
+        let defender = self.units.get(defender_id);
+        let attacker_modifiers = self.get_unit_modifiers(attacker.id(), defender.id(), false);
+        let defender_modifiers = self.get_unit_modifiers(defender.id(), attacker.id(), true);
+        CombatStats::new(attacker, attacker_modifiers, defender, defender_modifiers)
+    }
+
     pub fn moveunit_to(&mut self, unit_id: UnitID, pos: Pos) -> Option<CombatStats> {
         if let Some(path) = self.reachable_pos(unit_id).get(&pos).cloned() {
             let livepath = LivePath::new(&path, &self);
@@ -125,17 +133,7 @@ impl LiveMap {
                 }
                 let defender = self.units.get(defender_id);
                 assert!(defender.owner() != Player::Me);
-                let attacker = self.units.get(unit_id);
-                let attacker_modifiers = self.get_unit_modifiers(attacker.id(),
-                                                                 defender.id(),
-                                                                 false);
-                let defender_modifiers = self.get_unit_modifiers(defender.id(),
-                                                                 attacker.id(),
-                                                                 true);
-                let combat_result = CombatStats::new(attacker,
-                                                     attacker_modifiers,
-                                                     defender,
-                                                     defender_modifiers);
+                let combat_result = self.get_combat_stats(unit_id, defender_id);
                 return Some(combat_result);
             }
             let unit = self.units.get_mut(unit_id);
@@ -145,6 +143,21 @@ impl LiveMap {
                 livepath.cost()
             };
             unit.move_to(path.to(), cost);
+        }
+        None
+    }
+
+    pub fn bombard_at(&mut self, unit_id: UnitID, pos: Pos) -> Option<CombatStats> {
+        if !self.bombardable_pos(unit_id).contains_key(&pos) {
+            return None;
+        }
+        if let Some(defender_id) = self.units.unit_at_pos(pos) {
+            let defender = self.units.get(defender_id);
+            if defender.owner() == Player::Me {
+                return None;
+            }
+            let combat_result = self.get_combat_stats(unit_id, defender_id);
+            return Some(combat_result);
         }
         None
     }

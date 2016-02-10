@@ -1,4 +1,4 @@
-// Copyright 2015 Virgil Dupras
+// Copyright 2016 Virgil Dupras
 //
 // This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 // which should be included with this package. The terms are also available at
@@ -46,6 +46,13 @@ impl UnitType {
         match *self {
             UnitType::Melee => 8,
             UnitType::Ranged => 5,
+        }
+    }
+
+    pub fn ranged_strength(&self) -> u8 {
+        match *self {
+            UnitType::Melee => 0,
+            UnitType::Ranged => 7,
         }
     }
 
@@ -220,7 +227,7 @@ impl Units {
             let attacker = self.get_mut(attacker_id);
             attacker.hp = combat_stats.attacker_remaining_hp();
             attacker.movements = 0;
-            if combat_stats.defender_remaining_hp() == 0 {
+            if !combat_stats.ranged && combat_stats.defender_remaining_hp() == 0 {
                 attacker.pos = defender_pos;
             }
         }

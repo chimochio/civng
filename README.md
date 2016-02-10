@@ -28,6 +28,7 @@ Very early. Features:
 * Move mode allowing to step over friendly units.
 * Overhead terrain map.
 * Unit types: Melee and Ranged.
+* Bombard action for Ranged units.
 
 ## Requirements
 
@@ -84,11 +85,12 @@ turn. You can press `m` to active the "Move Mode" which enabled a blue cell sele
 selector around freely (it doesn't move the unit right away) and press Return when you've selected
 your destination. Press `m` again to cancel.
 
-If the active unit is a Ranged unit, you can press `b` to bombard. Bombard looks a lot like Move,
-but for now it doesn't do anything.
-
 If you move on a tile with an enemy unit on it, you initiate a melee attack automatically. If you
 win, you move on the enemy's tile.
+
+If the active unit is a Ranged unit, you can press `b` to bombard. Target tile selection works
+exactly like the Move mode, except that pressing Return on an enemy triggers a ranged attack
+instead.
 
 Water `~` and mountains `A` are impassable. Hills `^` use up 2 movement points.
 

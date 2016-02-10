@@ -152,6 +152,18 @@ impl Game {
         }
     }
 
+    pub fn bombard(&mut self) -> Option<CombatStats> {
+        if let Some(target_pos) = self.selection.pos {
+            let source_unit = self.selection.unit_id.unwrap();
+            let result = self.map.bombard_at(source_unit, target_pos);
+            self.cycle_active_unit();
+            self.update_details();
+            result
+        } else {
+            None
+        }
+    }
+
     pub fn new_turn(&mut self) {
         if self.turn > 0 {
             self.play_ai_turn();
@@ -307,6 +319,15 @@ impl Game {
                     MovementMode::Move => {
                         let target = self.selection.pos.unwrap();
                         if let Some(ref combat_result) = self.moveunit_to(target) {
+                            self.current_dialog = Some(create_combat_confirm_dialog(combat_result));
+                            self.state = MainloopState::CombatConfirm(combat_result.clone());
+                        }
+                        self.movemode = MovementMode::Normal;
+                        self.selection.pos = None;
+                        self.update_details();
+                    }
+                    MovementMode::Bombard => {
+                        if let Some(ref combat_result) = self.bombard() {
                             self.current_dialog = Some(create_combat_confirm_dialog(combat_result));
                             self.state = MainloopState::CombatConfirm(combat_result.clone());
                         }

@@ -1,4 +1,4 @@
-// Copyright 2015 Virgil Dupras
+// Copyright 2016 Virgil Dupras
 //
 // This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 // which should be included with this package. The terms are also available at
@@ -19,6 +19,7 @@ pub type DmgRange = (u8, u8);
 
 #[derive(Clone)]
 pub struct CombatStats {
+    pub ranged: bool,
     pub attacker_id: UnitID,
     pub defender_id: UnitID,
     pub attacker_name: String,
@@ -39,13 +40,23 @@ impl CombatStats {
                defender: &Unit,
                defender_modifiers: Vec<Modifier>)
                -> CombatStats {
+        let atype = attacker.type_();
+        let dtype = defender.type_();
+        let ranged = atype.ranged_strength() > 0;
+        let (astrength, dstrength) = if ranged {
+            (atype.ranged_strength(),
+             max(dtype.ranged_strength(), dtype.strength()))
+        } else {
+            (atype.strength(), dtype.strength())
+        };
         CombatStats {
+            ranged: ranged,
             attacker_id: attacker.id(),
             defender_id: defender.id(),
             attacker_name: attacker.name().to_owned(),
             defender_name: defender.name().to_owned(),
-            attacker_base_strength: attacker.strength(),
-            defender_base_strength: defender.strength(),
+            attacker_base_strength: astrength,
+            defender_base_strength: dstrength,
             attacker_starting_hp: attacker.hp(),
             defender_starting_hp: defender.hp(),
             dmg_to_attacker: 0,
@@ -74,15 +85,21 @@ impl CombatStats {
     }
 
     pub fn dmgrange_to_attacker(&self) -> DmgRange {
-        compute_dmg_range(self.defender_strength(),
-                          self.defender_starting_hp,
-                          self.attacker_strength())
+        if self.ranged {
+            (0, 0)
+        } else {
+            compute_dmg_range(self.defender_strength(),
+                              self.defender_starting_hp,
+                              self.attacker_strength(),
+                              self.ranged)
+        }
     }
 
     pub fn dmgrange_to_defender(&self) -> DmgRange {
         compute_dmg_range(self.attacker_strength(),
                           self.attacker_starting_hp,
-                          self.defender_strength())
+                          self.defender_strength(),
+                          self.ranged)
     }
 
     pub fn attacker_remaining_hp(&self) -> u8 {
@@ -173,7 +190,11 @@ fn roll_dice(range: DmgRange) -> u8 {
     Range::new(min, max + 1).ind_sample(&mut rng)
 }
 
-fn compute_dmg_range(source_strength: f32, source_hp: u8, target_strength: f32) -> DmgRange {
+fn compute_dmg_range(source_strength: f32,
+                     source_hp: u8,
+                     target_strength: f32,
+                     ranged: bool)
+                     -> DmgRange {
     let target_is_weak = source_strength > target_strength;
     let (strong_strength, weak_strength) = if target_is_weak {
         (source_strength, target_strength)
@@ -185,9 +206,13 @@ fn compute_dmg_range(source_strength: f32, source_hp: u8, target_strength: f32) 
     if !target_is_weak {
         m = 1.0 / m;
     }
-    const BASE_MIN: f32 = 40.0;
+    let base_min: f32 = if ranged {
+        20.0
+    } else {
+        40.0
+    };
     const BASE_SPREAD: f32 = 30.0;
-    let mut min = apply_penalty_for_damaged_unit(BASE_MIN * m, source_hp);
+    let mut min = apply_penalty_for_damaged_unit(base_min * m, source_hp);
     if min < 1.0 {
         min = 1.0;
     }
