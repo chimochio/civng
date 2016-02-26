@@ -180,6 +180,10 @@ impl LiveMap {
                 walker.backoff();
                 continue;
             }
+            if livepath.is_attack() && unit.type_().is_ranged() {
+                walker.backoff();
+                continue;
+            }
             let cost = livepath.cost();
             if livepath.is_reachable() {
                 match result.entry(path.to()) {

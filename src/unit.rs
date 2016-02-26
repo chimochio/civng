@@ -66,6 +66,10 @@ impl UnitType {
             UnitType::Ranged => 2,
         }
     }
+
+    pub fn is_ranged(&self) -> bool {
+        self.ranged_strength() > 0
+    }
 }
 
 /// A unit on a map.
