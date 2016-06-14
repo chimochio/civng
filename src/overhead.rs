@@ -5,7 +5,7 @@
 // http://www.gnu.org/licenses/gpl-3.0.html
 //
 
-use rustty::{CellAccessor, HasSize, Color};
+use rustty::{CellAccessor, Color};
 
 use terrain::TerrainMap;
 use hexpos::{OffsetPos, Pos};

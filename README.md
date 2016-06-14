@@ -32,7 +32,7 @@ Very early. Features:
 
 ## Requirements
 
-* [Rust][rust] 1.6
+* [Rust][rust] 1.9
 * A terminal using a font that supports [Unicode box-drawing characters][boxdrawing]
 
 Dependencies (automatically installed by cargo):

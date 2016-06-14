@@ -7,8 +7,9 @@
 
 use std::path::Path;
 use std::collections::HashSet;
+use std::time::Duration;
 
-use rustty::{Event, CellAccessor, Terminal};
+use rustty::{Event, Terminal};
 use rustty::ui::{Dialog, DialogResult, HorizontalAlign, VerticalAlign, Alignable};
 
 use hexpos::{Pos, Direction};
@@ -375,7 +376,7 @@ impl Game {
 
     /// Returns whether the mainloop should continue
     pub fn handle_events(&mut self) -> bool {
-        match self.term.get_event(-1) {
+        match self.term.get_event(Duration::from_secs(1)) {
             Ok(Some(Event::Key(k))) => {
                 match self.state.clone() {
                     MainloopState::Normal => {
@@ -395,7 +396,7 @@ impl Game {
                 }
             }
             _ => {
-                return false;
+                return true;
             }
         }
         true
